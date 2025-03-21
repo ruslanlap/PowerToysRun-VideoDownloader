@@ -6,7 +6,6 @@
   <h3>Download videos from popular platforms directly from PowerToys Run</h3>
   
   ![GitHub release (latest by date)](https://img.shields.io/github/v/release/ruslanlap/PowerToysRun-VideoDownloader)
-  ![GitHub all releases](https://img.shields.io/github/downloads/ruslanlap/PowerToysRun-VideoDownloader/total)
   ![GitHub issues](https://img.shields.io/github/issues/ruslanlap/PowerToysRun-VideoDownloader)
   ![GitHub pull requests](https://img.shields.io/github/issues-pr/ruslanlap/PowerToysRun-VideoDownloader)
   ![GitHub last commit](https://img.shields.io/github/last-commit/ruslanlap/PowerToysRun-VideoDownloader)
@@ -20,8 +19,8 @@
   ![C#](https://img.shields.io/badge/C%23-8.0-239120)
   ![PowerToys Compatible](https://img.shields.io/badge/PowerToys-Compatible-blue)
   ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
-  ![YouTube](https://img.shields.io/badge/YouTube-API-FF0000)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  download [here](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest)
 </div>
 
 ## 📋 Overview
