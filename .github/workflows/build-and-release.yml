@@ -7,12 +7,16 @@ on:
     tags:
       - 'v*'
 
-# Додаємо дозволи для GITHUB_TOKEN
+# Додаємо дозволи для GITHUB_TOKEN (принцип найменших привілеїв)
 permissions:
-  contents: write
-  packages: write
+  contents: write  # Потрібно для створення релізів
   issues: read
   pull-requests: read
+
+# Додаємо обмеження паралельних запусків
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
