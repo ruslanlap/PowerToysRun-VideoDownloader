@@ -60,6 +60,9 @@ jobs:
           # Create the artifact directory
           New-Item -ItemType Directory -Force -Path $artifactDir
           
+          # Create VideoDownloader subfolder
+          New-Item -ItemType Directory -Force -Path "$artifactDir/VideoDownloader"
+          
           # Find the build output directory
           $buildOutput = Get-ChildItem -Path "VideoDownloader" -Recurse -Directory | 
                          Where-Object { $_.Name -eq "Release" -and $_.FullName -like "*${{ matrix.platform }}*" } | 
@@ -67,9 +70,9 @@ jobs:
           
           Write-Host "Found build output directory: $buildOutput"
           
-          # Copy all files from the build output to the artifact directory
+          # Copy all files from the build output to the VideoDownloader subfolder
           if (Test-Path $buildOutput) {
-            Copy-Item -Path "$buildOutput/*" -Destination $artifactDir -Recurse
+            Copy-Item -Path "$buildOutput/*" -Destination "$artifactDir/VideoDownloader" -Recurse
             Write-Host "Files copied successfully"
           } else {
             Write-Error "Build output directory not found"
@@ -83,7 +86,7 @@ jobs:
           $zipFile = "VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}.zip"
           
           # Create the zip file
-          Compress-Archive -Path "$artifactDir/*" -DestinationPath "artifacts/$zipFile"
+          Compress-Archive -Path "$artifactDir/VideoDownloader" -DestinationPath "artifacts/$zipFile"
         shell: pwsh
       
       - name: Upload build artifacts
