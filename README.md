@@ -1,8 +1,9 @@
-# 🎬 PowerToysRun-VideoDownloader
+# PowerToys Run: VideoDownloader Plugin
 
 <div align="center">
-  <img src="VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/Images/logo.png" alt="VideoDownloader Logo" width="200"/>
-  <br>
+  <img src="VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/Images/logo.png" alt="VideoDownloader Logo" width="128" height="128">
+  
+  <h1>VideoDownloader for PowerToys Run</h1>
   <h3>Download videos from popular platforms directly from PowerToys Run</h3>
   
   ![GitHub release (latest by date)](https://img.shields.io/github/v/release/ruslanlap/PowerToysRun-VideoDownloader)
@@ -20,12 +21,19 @@
   ![PowerToys Compatible](https://img.shields.io/badge/PowerToys-Compatible-blue)
   ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey)
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-  download [here](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest)
+  <br>
+  <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest">
+    <img src="https://img.shields.io/badge/⬇️_Download-Latest_Release-blue?style=for-the-badge&logo=github" alt="Download Latest Release">
+  </a>
 </div>
 
 ## 📋 Overview
 
 PowerToysRun-VideoDownloader is a plugin for [Microsoft PowerToys Run](https://github.com/microsoft/PowerToys) that allows you to quickly download videos from various platforms (primarily YouTube) directly from your PowerToys Run interface. Simply type `dl` followed by a video URL to get started.
+
+<div align="center">
+  <img src="icon.png" alt="PowerToys" width="200">
+</div>
 
 ### ✨ Features
 
