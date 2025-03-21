@@ -1,0 +1,40 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35027.167
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{00000000-0000-0000-0000-000000000000}") = "Community.PowerToys.Run.Plugin.MySolution", "Community.PowerToys.Run.Plugin.MySolution\Community.PowerToys.Run.Plugin.MySolution.csproj", "{00000000-0000-0000-0000-000000000000}"
+EndProject
+Project("{00000000-0000-0000-0000-000000000000}") = "Community.PowerToys.Run.Plugin.MySolution.UnitTests", "Community.PowerToys.Run.Plugin.MySolution.UnitTests\Community.PowerToys.Run.Plugin.MySolution.UnitTests.csproj", "{00000000-0000-0000-0000-000000000000}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM64 = Debug|ARM64
+		Debug|x64 = Debug|x64
+		Release|ARM64 = Release|ARM64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{00000000-0000-0000-0000-000000000000}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{00000000-0000-0000-0000-000000000000}.Debug|ARM64.Build.0 = Debug|ARM64
+		{00000000-0000-0000-0000-000000000000}.Debug|x64.ActiveCfg = Debug|x64
+		{00000000-0000-0000-0000-000000000000}.Debug|x64.Build.0 = Debug|x64
+		{00000000-0000-0000-0000-000000000000}.Release|ARM64.ActiveCfg = Release|ARM64
+		{00000000-0000-0000-0000-000000000000}.Release|ARM64.Build.0 = Release|ARM64
+		{00000000-0000-0000-0000-000000000000}.Release|x64.ActiveCfg = Release|x64
+		{00000000-0000-0000-0000-000000000000}.Release|x64.Build.0 = Release|x64
+		{00000000-0000-0000-0000-000000000000}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{00000000-0000-0000-0000-000000000000}.Debug|ARM64.Build.0 = Debug|ARM64
+		{00000000-0000-0000-0000-000000000000}.Debug|x64.ActiveCfg = Debug|x64
+		{00000000-0000-0000-0000-000000000000}.Debug|x64.Build.0 = Debug|x64
+		{00000000-0000-0000-0000-000000000000}.Release|ARM64.ActiveCfg = Release|ARM64
+		{00000000-0000-0000-0000-000000000000}.Release|ARM64.Build.0 = Release|ARM64
+		{00000000-0000-0000-0000-000000000000}.Release|x64.ActiveCfg = Release|x64
+		{00000000-0000-0000-0000-000000000000}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {00000000-0000-0000-0000-000000000000}
+	EndGlobalSection
+EndGlobal

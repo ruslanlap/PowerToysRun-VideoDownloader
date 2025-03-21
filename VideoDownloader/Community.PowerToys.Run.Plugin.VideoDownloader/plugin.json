@@ -1,0 +1,14 @@
+{
+  "ID": "9B6621426ABD46EC9C8B30F165866711",
+  "ActionKeyword": "dl",
+  "IsGlobal": false,
+  "Name": "VideoDownloader",
+  "Author": "ruslanlap",
+  "Version": "0.87.0",
+  "Language": "csharp",
+  "Website": "https://github.com/ruslanlap/Community.PowerToys.Run.Plugin.VideoDownloader",
+  "ExecuteFileName": "Community.PowerToys.Run.Plugin.VideoDownloader.dll",
+  "IcoPathDark": "Images\\videodownloader.dark.png",
+  "IcoPathLight": "Images\\videodownloader.light.png",
+  "DynamicLoading": true
+}

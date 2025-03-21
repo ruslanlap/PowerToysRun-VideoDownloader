@@ -1,0 +1,64 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "Henrik Lau Eriksson",
+    "classifications": [
+        "PowerToys"
+    ],
+    "identity": "Community.PowerToys.Run.Plugin.Templates.Solution",
+    "name": "PowerToys Run Plugin Solution",
+    "description": "A template for creating PowerToys Run plugin solutions.",
+    "shortName": "ptrun-sln",
+    "tags": {
+        "language": "C#",
+        "type": "solution",
+        "editorTreatAs": "solution"
+    },
+    "defaultName": "MyPlugin",
+    "sourceName": "Plugin1",
+    "preferNameDirectory": false,
+    "guids": [
+        "00000000000000000000000000000000",
+        "4FE6620B-81F5-4D54-B3F2-1DA89DE801B2",
+        "CEA38081-865E-4E96-9272-B9C8F77A29FB",
+        "8E0BD79D-D49E-47C3-8795-AEDBA16EB234"
+    ],
+    "symbols": {
+        "PluginAuthor": {
+            "type": "parameter",
+            "displayName": "Plugin _author",
+            "description": "The author of the plugin.",
+            "replaces": "hlaueriksson"
+        },
+        "TestProject": {
+            "type": "parameter",
+            "datatype": "bool",
+            "displayName": "Create a _test project",
+            "description": "Configures whether to create a project for unit tests.",
+            "defaultValue": "true"
+        },
+        "Images": {
+            "type": "derived",
+            "datatype": "text",
+            "valueSource": "name",
+            "valueTransform": "ImagesTransform",
+            "fileRename": "plugin1"
+        }
+    },
+    "forms": {
+        "ImagesTransform": {
+            "identifier": "lowerCase"
+        }
+    },
+    "sources": [
+        {
+            "modifiers": [
+                {
+                    "condition": "(!TestProject)",
+                    "exclude": [
+                        "Community.PowerToys.Run.Plugin.Plugin1.UnitTests/**/*"
+                    ]
+                }
+            ]
+        }
+    ]
+}

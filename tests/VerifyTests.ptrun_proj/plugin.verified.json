@@ -1,0 +1,14 @@
+﻿{
+  "ID": "00000000000000000000000000000000",
+  "ActionKeyword": "myproject",
+  "IsGlobal": false,
+  "Name": "MyProject",
+  "Author": "hlaueriksson",
+  "Version": "0.87.0",
+  "Language": "csharp",
+  "Website": "https://github.com/hlaueriksson/MyProject",
+  "ExecuteFileName": "MyProject.dll",
+  "IcoPathDark": "Images\\myproject.dark.png",
+  "IcoPathLight": "Images\\myproject.light.png",
+  "DynamicLoading": false
+}

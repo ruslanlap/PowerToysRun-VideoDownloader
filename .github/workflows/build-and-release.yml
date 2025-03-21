@@ -1,0 +1,89 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        platform: [x64, arm64]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0.x'
+      
+      - name: Build
+        run: dotnet build -c Release -p:Platform="${{ matrix.platform }}"
+      
+      - name: Get version from tag
+        id: get_version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Create output directory
+        run: mkdir -p artifacts
+      
+      - name: Copy build output to artifacts directory
+        run: |
+          $buildOutput = "bin/Release/${{ matrix.platform }}"
+          $artifactDir = "artifacts/VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}"
+          
+          # Create the artifact directory
+          New-Item -ItemType Directory -Force -Path $artifactDir
+          
+          # Copy all files from the build output to the artifact directory
+          Copy-Item -Path "$buildOutput/*" -Destination $artifactDir -Recurse
+        shell: pwsh
+      
+      - name: Create ZIP archive
+        run: |
+          $artifactDir = "artifacts/VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}"
+          $zipFile = "VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}.zip"
+          
+          # Create the zip file
+          Compress-Archive -Path "$artifactDir/*" -DestinationPath "artifacts/$zipFile"
+        shell: pwsh
+      
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-artifacts-${{ matrix.platform }}
+          path: artifacts/*.zip
+  
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+      
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: VideoDownloader v${{ steps.get_version.outputs.VERSION }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            artifacts/build-artifacts-x64/*.zip
+            artifacts/build-artifacts-arm64/*.zip

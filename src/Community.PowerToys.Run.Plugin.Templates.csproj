@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Title>PowerToys Run Plugin Templates</Title>
+    <Authors>Henrik Lau Eriksson</Authors>
+    <Description>These dotnet new templates simplify creating PowerToys Run plugin projects and solutions.</Description>
+    <PackageType>Template</PackageType>
+    <PackageVersion>0.3.0</PackageVersion>
+    <PackageReleaseNotes>
+- Change target framework to net9.0-windows10.0.22621.0
+- Bump Community.PowerToys.Run.Plugin.Dependencies to 0.87.0
+    </PackageReleaseNotes>
+    <PackageId>Community.PowerToys.Run.Plugin.Templates</PackageId>
+    <PackageProjectUrl>https://github.com/hlaueriksson/Community.PowerToys.Run.Plugin.Templates</PackageProjectUrl>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>plugin;plugins;powertoys;microsoft-powertoys;powertoys-run;powertoys-run-plugin</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+
+    <IncludeContentInPack>true</IncludeContentInPack>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <ContentTargetFolders>content</ContentTargetFolders>
+
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <NoWarn>$(NoWarn);NU5110;NU5111;NU5128</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\icon.png" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="templates\**\*" Exclude="templates\**\bin\**;templates\**\obj\**" />
+    <Compile Remove="**\*" />
+  </ItemGroup>
+
+</Project>

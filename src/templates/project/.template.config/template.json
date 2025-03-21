@@ -1,0 +1,54 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "Henrik Lau Eriksson",
+    "classifications": [
+        "PowerToys"
+    ],
+    "identity": "Community.PowerToys.Run.Plugin.Templates.Project",
+    "name": "PowerToys Run Plugin Project",
+    "description": "A template for creating PowerToys Run plugin projects.",
+    "shortName": "ptrun-proj",
+    "tags": {
+        "language": "C#",
+        "type": "project"
+    },
+    "defaultName": "MyPlugin",
+    "sourceName": "Namespace.Plugin1",
+    "preferNameDirectory": true,
+    "guids": [
+        "00000000000000000000000000000000"
+    ],
+    "symbols": {
+        "PluginAuthor": {
+            "type": "parameter",
+            "displayName": "Plugin _author",
+            "description": "The author of the plugin.",
+            "replaces": "hlaueriksson"
+        },
+        "PluginName": {
+            "type": "derived",
+            "datatype": "text",
+            "valueSource": "name",
+            "valueTransform": "PluginNameTransform",
+            "replaces": "Plugin1"
+        },
+        "PluginNameLowerCase": {
+            "type": "derived",
+            "datatype": "text",
+            "valueSource": "PluginName",
+            "valueTransform": "PluginNameLowerCaseTransform",
+            "replaces": "plugin1",
+            "fileRename": "plugin1"
+        }
+    },
+    "forms": {
+        "PluginNameTransform": {
+            "identifier": "replace",
+            "pattern": ".*?\\.",
+            "replacement": ""
+        },
+        "PluginNameLowerCaseTransform": {
+            "identifier": "lowerCase"
+        }
+    }
+}

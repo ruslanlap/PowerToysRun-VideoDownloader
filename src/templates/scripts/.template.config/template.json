@@ -1,0 +1,15 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "author": "Henrik Lau Eriksson",
+    "classifications": [
+        "PowerToys"
+    ],
+    "identity": "Community.PowerToys.Run.Plugin.Templates.Scripts",
+    "name": "PowerToys Run Plugin Scripts",
+    "description": "A template for creating PowerToys Run plugin scripts.",
+    "shortName": "ptrun-scripts",
+    "tags": {
+        "language": "PowerShell",
+        "type": "item"
+    }
+}

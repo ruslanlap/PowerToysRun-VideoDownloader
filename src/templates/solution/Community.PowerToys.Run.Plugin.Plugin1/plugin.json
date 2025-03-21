@@ -1,0 +1,14 @@
+{
+  "ID": "00000000000000000000000000000000",
+  "ActionKeyword": "plugin1",
+  "IsGlobal": false,
+  "Name": "Plugin1",
+  "Author": "hlaueriksson",
+  "Version": "0.87.0",
+  "Language": "csharp",
+  "Website": "https://github.com/hlaueriksson/Community.PowerToys.Run.Plugin.Plugin1",
+  "ExecuteFileName": "Community.PowerToys.Run.Plugin.Plugin1.dll",
+  "IcoPathDark": "Images\\plugin1.dark.png",
+  "IcoPathLight": "Images\\plugin1.light.png",
+  "DynamicLoading": false
+}

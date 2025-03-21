@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" Version="7.0.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="NUnit" Version="4.3.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Verify.NUnit" Version="28.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\src\Community.PowerToys.Run.Plugin.Templates.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="VerifyTests.ptrun_proj\**" />
+    <Compile Remove="VerifyTests.ptrun_scripts\**" />
+    <Compile Remove="VerifyTests.ptrun_sln\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Remove="VerifyTests.ptrun_proj\**" />
+    <EmbeddedResource Remove="VerifyTests.ptrun_scripts\**" />
+    <EmbeddedResource Remove="VerifyTests.ptrun_sln\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="VerifyTests.ptrun_proj\**" />
+    <None Remove="VerifyTests.ptrun_scripts\**" />
+    <None Remove="VerifyTests.ptrun_sln\**" />
+  </ItemGroup>
+
+</Project>

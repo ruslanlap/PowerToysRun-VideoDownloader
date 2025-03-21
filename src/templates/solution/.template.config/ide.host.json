@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/ide.host",
+  "icon": "ide/icon.ico",
+  "symbolInfo": [
+    {
+      "id": "PluginAuthor",
+      "isVisible": true,
+      "persistenceScope": "templateGroup"
+    },
+    {
+      "id": "TestProject",
+      "isVisible": true,
+      "persistenceScope": "templateGroup"
+    }
+  ]
+}
