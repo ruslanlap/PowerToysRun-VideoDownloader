@@ -7,6 +7,13 @@ on:
     tags:
       - 'v*'
 
+# Додаємо дозволи для GITHUB_TOKEN
+permissions:
+  contents: write
+  packages: write
+  issues: read
+  pull-requests: read
+
 jobs:
   build:
     runs-on: windows-latest
