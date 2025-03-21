@@ -24,7 +24,7 @@ jobs:
           dotnet-version: '9.0.x'
       
       - name: Build
-        run: dotnet build -c Release -p:Platform="${{ matrix.platform }}"
+        run: dotnet build VideoDownloader/VideoDownloader.sln -c Release -p:Platform="${{ matrix.platform }}"
       
       - name: Get version
         id: get_version
@@ -43,7 +43,7 @@ jobs:
       
       - name: Copy build output to artifacts directory
         run: |
-          $buildOutput = "bin/Release/${{ matrix.platform }}"
+          $buildOutput = "VideoDownloader/bin/Release/${{ matrix.platform }}"
           $artifactDir = "artifacts/VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}"
           
           # Create the artifact directory
