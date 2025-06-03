@@ -2,7 +2,8 @@
 bin/
 obj/
 TestResults/
-
+.gitignore
+.windsurf/
 # Visual Studio files
 .vs/
 *.user

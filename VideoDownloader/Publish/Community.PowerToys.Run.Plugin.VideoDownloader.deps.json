@@ -1,0 +1,146 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0/win-x64",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {},
+    ".NETCoreApp,Version=v9.0/win-x64": {
+      "Community.PowerToys.Run.Plugin.VideoDownloader/1.0.0": {
+        "dependencies": {
+          "Community.PowerToys.Run.Plugin.Dependencies": "0.90.0",
+          "PowerToys.Common.UI": "0.90.0.0",
+          "PowerToys.ManagedCommon": "0.90.0.0",
+          "PowerToys.Settings.UI.Lib": "0.90.0.0",
+          "Wox.Infrastructure": "0.90.0.0",
+          "Wox.Plugin": "0.90.0.0",
+          "runtimepack.Microsoft.Windows.SDK.NET.Ref": "10.0.22621.57"
+        },
+        "runtime": {
+          "Community.PowerToys.Run.Plugin.VideoDownloader.dll": {}
+        }
+      },
+      "runtimepack.Microsoft.Windows.SDK.NET.Ref/10.0.22621.57": {
+        "runtime": {
+          "Microsoft.Windows.SDK.NET.dll": {
+            "assemblyVersion": "10.0.22621.38",
+            "fileVersion": "10.0.22621.55"
+          },
+          "WinRT.Runtime.dll": {
+            "assemblyVersion": "2.2.0.0",
+            "fileVersion": "2.2.0.48161"
+          }
+        }
+      },
+      "Community.PowerToys.Run.Plugin.Dependencies/0.90.0": {
+        "runtime": {
+          "runtimes/win-x64/lib/net9.0/PowerToys.Common.UI.dll": {
+            "assemblyVersion": "0.90.0.0",
+            "fileVersion": "0.90.0.0"
+          },
+          "runtimes/win-x64/lib/net9.0/PowerToys.ManagedCommon.dll": {
+            "assemblyVersion": "0.90.0.0",
+            "fileVersion": "0.90.0.0"
+          },
+          "runtimes/win-x64/lib/net9.0/PowerToys.Settings.UI.Lib.dll": {
+            "assemblyVersion": "0.90.0.0",
+            "fileVersion": "0.90.0.0"
+          },
+          "runtimes/win-x64/lib/net9.0/Wox.Infrastructure.dll": {
+            "assemblyVersion": "0.90.0.0",
+            "fileVersion": "0.90.0.0"
+          },
+          "runtimes/win-x64/lib/net9.0/Wox.Plugin.dll": {
+            "assemblyVersion": "0.90.0.0",
+            "fileVersion": "0.90.0.0"
+          }
+        }
+      },
+      "PowerToys.Common.UI/0.90.0.0": {
+        "runtime": {
+          "PowerToys.Common.UI.dll": {
+            "assemblyVersion": "0.90.0.0",
+            "fileVersion": "0.90.0.0"
+          }
+        }
+      },
+      "PowerToys.ManagedCommon/0.90.0.0": {
+        "runtime": {
+          "PowerToys.ManagedCommon.dll": {
+            "assemblyVersion": "0.90.0.0",
+            "fileVersion": "0.90.0.0"
+          }
+        }
+      },
+      "PowerToys.Settings.UI.Lib/0.90.0.0": {
+        "runtime": {
+          "PowerToys.Settings.UI.Lib.dll": {
+            "assemblyVersion": "0.90.0.0",
+            "fileVersion": "0.90.0.0"
+          }
+        }
+      },
+      "Wox.Infrastructure/0.90.0.0": {
+        "runtime": {
+          "Wox.Infrastructure.dll": {
+            "assemblyVersion": "0.90.0.0",
+            "fileVersion": "0.90.0.0"
+          }
+        }
+      },
+      "Wox.Plugin/0.90.0.0": {
+        "runtime": {
+          "Wox.Plugin.dll": {
+            "assemblyVersion": "0.90.0.0",
+            "fileVersion": "0.90.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Community.PowerToys.Run.Plugin.VideoDownloader/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "runtimepack.Microsoft.Windows.SDK.NET.Ref/10.0.22621.57": {
+      "type": "runtimepack",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Community.PowerToys.Run.Plugin.Dependencies/0.90.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-jUb3zg570enp5Fh4qwzjeZWyRlkOTS49H4cpf6iKKKy6+xciffWADyLSrR2+xShqpG2wiPcg96lmsKGB5LUNHA==",
+      "path": "community.powertoys.run.plugin.dependencies/0.90.0",
+      "hashPath": "community.powertoys.run.plugin.dependencies.0.90.0.nupkg.sha512"
+    },
+    "PowerToys.Common.UI/0.90.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "PowerToys.ManagedCommon/0.90.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "PowerToys.Settings.UI.Lib/0.90.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Wox.Infrastructure/0.90.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Wox.Plugin/0.90.0.0": {
+      "type": "reference",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

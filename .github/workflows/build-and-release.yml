@@ -1,19 +1,20 @@
-name: Build and Release
+name: Build and Release SpeedTest Plugin
 
 on:
   push:
     branches:
+      - main
       - master
     tags:
       - 'v*'
 
-# Додаємо дозволи для GITHUB_TOKEN (принцип найменших привілеїв)
+# Permissions for GITHUB_TOKEN (principle of least privilege)
 permissions:
-  contents: write  # Потрібно для створення релізів
+  contents: write  # Needed for creating releases
   issues: read
   pull-requests: read
 
-# Додаємо обмеження паралельних запусків
+# Add restrictions for parallel runs
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -35,7 +36,7 @@ jobs:
           dotnet-version: '9.0.x'
       
       - name: Build
-        run: dotnet build VideoDownloader/VideoDownloader.sln -c Release -p:Platform="${{ matrix.platform }}"
+        run: dotnet build SpeedTest/SpeedTest.sln -c Release -p:Platform="${{ matrix.platform }}"
       
       - name: Get version
         id: get_version
@@ -51,7 +52,7 @@ jobs:
       
       - name: Debug Output
         run: |
-          Get-ChildItem -Path "VideoDownloader" -Recurse -Directory | Where-Object { $_.Name -eq "Release" } | ForEach-Object { Write-Host $_.FullName }
+          Get-ChildItem -Path "SpeedTest" -Recurse -Directory | Where-Object { $_.Name -eq "Release" } | ForEach-Object { Write-Host $_.FullName }
         shell: pwsh
       
       - name: Create output directory
@@ -59,45 +60,86 @@ jobs:
       
       - name: Copy build output to artifacts directory
         run: |
-          $artifactDir = "artifacts/VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}"
+          $artifactDir = "artifacts/SpeedTest-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}"
           
           # Create the artifact directory
           New-Item -ItemType Directory -Force -Path $artifactDir
           
-          # Create VideoDownloader subfolder
-          New-Item -ItemType Directory -Force -Path "$artifactDir/VideoDownloader"
+          # Create SpeedTest subfolder
+          New-Item -ItemType Directory -Force -Path "$artifactDir/SpeedTest"
           
-          # Find the build output directory
-          $buildOutput = Get-ChildItem -Path "VideoDownloader" -Recurse -Directory | 
-                         Where-Object { $_.Name -eq "Release" -and $_.FullName -like "*${{ matrix.platform }}*" } | 
-                         Select-Object -First 1 -ExpandProperty FullName
+          # Copy Images folder (icons) to artifact directory to ensure correct icons in release
+          $imagesSrc = "SpeedTest/Community.PowerToys.Run.Plugin.SpeedTest/Images"
+          $imagesDst = "$artifactDir/SpeedTest/Images"
+          if (Test-Path $imagesSrc) {
+            Write-Host "Copying Images folder from $imagesSrc to $imagesDst"
+            Copy-Item -Path $imagesSrc -Destination $imagesDst -Recurse -Force
+          } else {
+            Write-Host "Images folder not found at $imagesSrc"
+          }
           
-          Write-Host "Found build output directory: $buildOutput"
+          # Define the direct path to the build output
+          $buildOutput = "SpeedTest/Community.PowerToys.Run.Plugin.SpeedTest/bin/${{ matrix.platform }}/Release"
           
-          # Find the .NET runtime folder (net9.0-windows10.0.22621.0) inside the build output
-          $runtimeFolder = Get-ChildItem -Path $buildOutput -Directory | 
-                           Where-Object { $_.Name -like "net*-windows*" } | 
+          Write-Host "Using build output directory: $buildOutput"
+          
+          # Check if the directory exists
+          if (-not (Test-Path $buildOutput)) {
+            Write-Host "Build output directory not found at expected path. Searching for it..."
+            $buildOutput = Get-ChildItem -Path "SpeedTest" -Recurse -Directory | 
+                           Where-Object { $_.Name -eq "Release" -and $_.FullName -like "*${{ matrix.platform }}*" } | 
                            Select-Object -First 1 -ExpandProperty FullName
+            
+            if ($buildOutput) {
+              Write-Host "Found build output directory: $buildOutput"
+            } else {
+              Write-Error "Could not find any Release directory for platform ${{ matrix.platform }}"
+              exit 1
+            }
+          }
           
-          Write-Host "Found runtime folder: $runtimeFolder"
+          # Check if build output exists before proceeding
+          if (-not (Test-Path $buildOutput)) {
+            Write-Error "Build output directory not found"
+            exit 1
+          }
           
-          # Copy all files from the runtime folder directly to the VideoDownloader subfolder
-          if (Test-Path $runtimeFolder) {
-            Copy-Item -Path "$runtimeFolder/*" -Destination "$artifactDir/VideoDownloader" -Recurse
+          # Check for files directly in the build output directory
+          $files = Get-ChildItem -Path $buildOutput -File
+          if ($files.Count -gt 0) {
+            Write-Host "Found $($files.Count) files in build output directory. Copying directly..."
+            Copy-Item -Path "$buildOutput/*" -Destination "$artifactDir/SpeedTest" -Recurse -Force
             Write-Host "Files copied successfully"
           } else {
-            Write-Error "Runtime folder not found"
-            exit 1
+            # Look for a .NET runtime folder
+            $runtimeFolder = Get-ChildItem -Path $buildOutput -Directory | 
+                             Where-Object { $_.Name -like "net*-windows*" } | 
+                             Select-Object -First 1 -ExpandProperty FullName
+            
+            if ($runtimeFolder) {
+              Write-Host "Found runtime folder: $runtimeFolder"
+              Copy-Item -Path "$runtimeFolder/*" -Destination "$artifactDir/SpeedTest" -Recurse -Force
+              Write-Host "Files copied successfully from runtime folder"
+            } else {
+              # If no runtime folder, check for any subdirectories
+              $subDirs = Get-ChildItem -Path $buildOutput -Directory
+              if ($subDirs.Count -gt 0) {
+                $firstSubDir = $subDirs[0].FullName
+                Write-Host "No runtime folder found, but found subdirectory: $firstSubDir"
+                Copy-Item -Path "$firstSubDir/*" -Destination "$artifactDir/SpeedTest" -Recurse -Force
+                Write-Host "Files copied from first subdirectory"
+              } else {
+                Write-Error "No files or subdirectories found in build output directory"
+                exit 1
+              }
+            }
           }
         shell: pwsh
       
       - name: Create ZIP archive
         run: |
-          $artifactDir = "artifacts/VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}"
-          $zipFile = "VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}.zip"
-          
-          # Create the zip file
-          Compress-Archive -Path "$artifactDir/VideoDownloader" -DestinationPath "artifacts/$zipFile"
+          $artifactDir = "artifacts/SpeedTest-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}"
+          Compress-Archive -Path "$artifactDir/SpeedTest/*" -DestinationPath "$artifactDir.zip"
         shell: pwsh
       
       - name: Upload build artifacts
@@ -118,20 +160,91 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          path: downloaded-artifacts
+      
+      # Debug step to see what files are available
+      - name: List downloaded artifacts
+        run: |
+          echo "Listing downloaded artifacts directory:"
+          ls -la downloaded-artifacts
+          echo "Listing x64 artifacts:"
+          ls -la downloaded-artifacts/build-artifacts-x64 || echo "No x64 artifacts found"
+          echo "Listing ARM64 artifacts:"
+          ls -la downloaded-artifacts/build-artifacts-arm64 || echo "No ARM64 artifacts found"
+      
+      # Copy artifacts to the expected location with the correct names
+      - name: Prepare artifacts for release
+        run: |
+          mkdir -p release-artifacts
+          cp downloaded-artifacts/build-artifacts-x64/*.zip release-artifacts/SpeedTest-x64.zip || echo "Failed to copy x64 artifact"
+          cp downloaded-artifacts/build-artifacts-arm64/*.zip release-artifacts/SpeedTest-ARM64.zip || echo "Failed to copy ARM64 artifact"
+          echo "Listing release artifacts:"
+          ls -la release-artifacts
+      
+      - name: Rename release artifacts for convention
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          mv release-artifacts/SpeedTest-x64.zip release-artifacts/SpeedTest-${VERSION}-x64.zip
+          mv release-artifacts/SpeedTest-ARM64.zip release-artifacts/SpeedTest-${VERSION}-ARM64.zip
       
       - name: Get version from tag
         id: get_version
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
       
+      - name: Prepare Release Notes
+        id: release_notes
+        run: |
+          cat > release_notes.md << 'EOL'
+          # SpeedTest Plugin v1.0.2
+
+          ![SpeedTest Plugin Logo](https://raw.githubusercontent.com/ruslanlap/PowerToysRun-SpeedTest/master/SpeedTest/data/logo.png)
+
+          ## What's New
+
+          This release brings significant UI improvements and refinements to the SpeedTest plugin!
+
+          ### Highlights
+
+          - Enhanced UI with professional color scheme
+          - Improved animations and transitions
+          - Better visual hierarchy and spacing
+          - Refined typography and status indicators
+          - Bug fixes and performance improvements
+
+          ## Installation
+
+          1. Download the ZIP file for your platform (x64 or ARM64)
+          2. Extract to `%LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\`
+          3. Restart PowerToys
+          4. Start using with `Alt+Space` then type `speedtest`
+
+          ## Found a bug?
+
+          If you encounter any issues or have suggestions for improvements, please [open an issue](https://github.com/ruslanlap/PowerToysRun-SpeedTest/issues).
+
+          Made with ❤️ by [ruslanlap](https://github.com/ruslanlap)
+          EOL
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Generate SHA256 checksums
+        run: |
+          cd release-artifacts
+          sha256sum SpeedTest-1.0.2-x64.zip > SpeedTest-1.0.2-x64.zip.sha256
+          sha256sum SpeedTest-1.0.2-ARM64.zip > SpeedTest-1.0.2-ARM64.zip.sha256
+      
       - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v1
         with:
-          name: VideoDownloader v${{ steps.get_version.outputs.VERSION }}
+          name: PowerToysRun-SpeedTest v1.0.2
+          body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
           draft: false
           prerelease: false
-          generate_release_notes: true
           files: |
-            artifacts/build-artifacts-x64/*.zip
-            artifacts/build-artifacts-arm64/*.zip
+            release-artifacts/SpeedTest-1.0.2-x64.zip
+            release-artifacts/SpeedTest-1.0.2-ARM64.zip
+            release-artifacts/SpeedTest-1.0.2-x64.zip.sha256
+            release-artifacts/SpeedTest-1.0.2-ARM64.zip.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

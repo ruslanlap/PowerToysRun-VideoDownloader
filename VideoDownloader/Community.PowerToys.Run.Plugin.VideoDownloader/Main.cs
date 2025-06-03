@@ -1,856 +1,596 @@
-using ManagedCommon;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Windows;
-using Wox.Plugin;
-using YoutubeExplode;
-using YoutubeExplode.Videos;
-using YoutubeExplode.Videos.Streams;
-using System.Reflection;
-using Wox.Plugin.Logger;
-using System.Windows.Controls;
 using System.Linq;
+using System.Threading.Tasks;
+using ManagedCommon;
+using Wox.Plugin;
 
 namespace Community.PowerToys.Run.Plugin.VideoDownloader
 {
-    // Implements IPlugin, IContextMenu for additional actions, and IPluginI18n for localization.
-    public class Main : IPlugin, IContextMenu, IPluginI18n, IDisposable
+    public class Main : IPlugin, IReloadable, IDisposable
     {
-        public static string PluginID => "9B6621426ABD46EC9C8B30F165866711";
+        public static string PluginID => "B8F9B9F5C3E44A8B9F1F2E3D4C5B6A7B";
         public string Name => "VideoDownloader";
-        public string Description => "Download videos from URLs (supports YouTube with restricted content)";
+        public string Description => "Download videos from YouTube and other websites using yt-dlp";
 
-        private PluginInitContext Context { get; set; }
-        private string IconPath { get; set; }
-        private bool Disposed { get; set; }
-        private readonly HttpClient _httpClient = new HttpClient();
-        private readonly YoutubeClient _youtubeClient = new YoutubeClient();
-        private string _downloadFolder;
-        private CancellationTokenSource _downloadCancellationTokenSource;
-        private string _pluginDirectory;
-        private string _ytDlpPath;
-        private string _cookiesFilePath;
-        private bool _ytDlpAvailable;
+        private PluginInitContext _context;
+        private string _iconPathDark;
+        private string _iconPathLight;
+        private bool _disposed;
 
         // Settings
-        private bool _openExplorerAfterDownload = true;
-        private bool _preferYtDlp = false;
-        private bool _autoInstallYtDlp = true;
-        private string _preferredQuality = "best"; // Default quality
-
-        // Resource strings – these should eventually be moved into .resx files.
-        private const string DownloadStartedMessage = "Download started";
-        private const string DownloadCompleteTitle = "Download Complete!";
-        private const string DownloadCompleteMessage = "Video saved to {0}";
-        private const string DownloadFailedTitle = "Download Failed";
-        private const string InvalidUrlMessage = "Enter valid video URL";
-        private const string InvalidUrlSubTitle = "Example: https://youtu.be/abc123 or https://example.com/video.mp4";
-        private const string YtDlpMissingMessage = "yt-dlp is required for restricted content";
-        private const string YtDlpInstallingMessage = "Installing yt-dlp...";
-        private const string YtDlpDownloadFailedMessage = "Failed to download yt-dlp";
-
-        // Icon glyphs for context menu
-        private const string DownloadIcon = "\uE896";    // Download icon
-        private const string CopyIcon = "\uE8C8";        // Clipboard icon
-        private const string FolderIcon = "\uE838";      // Folder icon
-        private const string SettingsIcon = "\uE713";    // Settings icon
-        private const string CookieIcon = "\uE753";      // Cookie icon
-        private const string QualityIcon = "\uE9E9";     // HD icon
-        private const string YoutubeIcon = "\uF5B1";     // Video icon 
-
-        // Quality options for context menu
-        private readonly Dictionary<string, string> _qualityOptions = new Dictionary<string, string>
-        {
-            { "best", "Best Quality" },
-            { "1080p", "1080p" },
-            { "720p", "720p" },
-            { "480p", "480p" },
-            { "360p", "360p" },
-            { "audio", "Audio Only" }
-        };
+        private string _downloadPath = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
+        private string _audioFormat = "mp3";
+        private string _videoFormat = "mp4";
 
         public List<Result> Query(Query query)
         {
-            var search = query.Search.Trim();
-            // Return a friendly message if the URL is missing or invalid.
-            if (string.IsNullOrWhiteSpace(search) || !Uri.IsWellFormedUriString(search, UriKind.Absolute))
-            {
-                return new List<Result>
-                {
-                    new Result
-                    {
-                        QueryTextDisplay = search,
-                        IcoPath = IconPath,
-                        Title = InvalidUrlMessage,
-                        SubTitle = InvalidUrlSubTitle,
-                    }
-                };
-            }
+            var results = new List<Result>();
 
-            // Return a single result that will start the download on selection.
-            return new List<Result>
+            // Check if yt-dlp is available on first use
+            if (!IsYtDlpAvailable())
             {
-                new Result
+                results.Add(new Result
                 {
-                    QueryTextDisplay = search,
-                    IcoPath = IconPath,
-                    Title = "Download video",
-                    SubTitle = $"URL: {search} | Quality: {_qualityOptions[_preferredQuality]}",
-                    ToolTipData = new ToolTipData("Download Video", 
-                        $"Supports YouTube (including restricted content) and direct links{(_ytDlpAvailable ? "" : " - yt-dlp not installed")}"),
+                    Title = "📥 Setup Video Downloader",
+                    SubTitle = "First-time setup: Download yt-dlp.exe",
+                    IcoPath = GetIconPath(),
                     Action = context =>
                     {
-                        // Fire-and-forget the download task.
-                        Task.Run(() => DownloadVideoAsync(search));
+                        SetupYtDlp();
                         return true;
-                    },
-                    ContextData = search,
-                }
-            };
-        }
-
-        /// <summary>
-        /// Downloads the video given the URL by dispatching to the appropriate download method.
-        /// </summary>
-        /// <param name="url">The video URL.</param>
-        private async Task DownloadVideoAsync(string url)
-        {
-            // Cancel any ongoing download if needed.
-            _downloadCancellationTokenSource?.Cancel();
-            _downloadCancellationTokenSource = new CancellationTokenSource();
-            CancellationToken token = _downloadCancellationTokenSource.Token;
-
-            try
-            {
-                // Immediately notify the user that the download has started.
-                Context.API.ShowMsg(DownloadStartedMessage, $"Downloading video from: {url}");
-
-                if (IsYouTubeUrl(url))
-                {
-                    if (_preferYtDlp && _ytDlpAvailable)
-                    {
-                        await DownloadFromYouTubeWithYtDlpAsync(url, token);
                     }
-                    else
+                });
+
+                if (!string.IsNullOrEmpty(query.Search))
+                {
+                    results.Add(new Result
                     {
-                        try
-                        {
-                            await DownloadFromYouTubeAsync(url, token);
-                        }
-                        catch (Exception ex) when (IsRestrictedContentException(ex))
-                        {
-                            if (_ytDlpAvailable)
-                            {
-                                // Fallback to yt-dlp for restricted content
-                                Context.API.ShowMsg("Restricted Content", "Trying alternative download method...");
-                                await DownloadFromYouTubeWithYtDlpAsync(url, token);
-                            }
-                            else if (_autoInstallYtDlp)
-                            {
-                                Context.API.ShowMsg(YtDlpInstallingMessage, "Required for restricted content");
-                                if (await InstallYtDlpAsync(token))
-                                {
-                                    await DownloadFromYouTubeWithYtDlpAsync(url, token);
-                                }
-                                else
-                                {
-                                    throw new Exception(YtDlpDownloadFailedMessage);
-                                }
-                            }
-                            else
-                            {
-                                // Propagate original exception if yt-dlp is not available
-                                throw new Exception($"{ex.Message}\n\n{YtDlpMissingMessage}");
-                            }
-                        }
+                        Title = "⏳ Setting up downloader...",
+                        SubTitle = "Click 'Setup Video Downloader' above first",
+                        IcoPath = GetIconPath(),
+                        Action = context => false
+                    });
+                }
+                return results;
+            }
+
+            if (string.IsNullOrEmpty(query.Search))
+            {
+                results.Add(new Result
+                {
+                    Title = "Video Downloader",
+                    SubTitle = "Type a URL to download video (e.g., dl https://youtube.com/...)",
+                    IcoPath = GetIconPath(),
+                    Action = context => false
+                });
+
+                results.Add(new Result
+                {
+                    Title = "📁  Open Download Folder",
+                    SubTitle = $"Current: {_downloadPath}",
+                    IcoPath = GetIconPath(),
+                    Action = context =>
+                    {
+                        OpenDownloadFolder();
+                        return true;
                     }
-                }
-                else
+                });
+
+                results.Add(new Result
                 {
-                    await DownloadFromDirectUrlAsync(url, token);
-                }
-                OnDownloadSucceeded();
+                    Title = "⚙️  Change Download Folder",
+                    SubTitle = "Click to select a new download location",
+                    IcoPath = GetIconPath(),
+                    Action = context =>
+                    {
+                        ChangeDownloadFolder();
+                        return true;
+                    }
+                });
+
+                return results;
             }
-            catch (Exception ex)
+
+            var searchTerms = query.Search.Trim();
+
+            // Check if it's a URL
+            if (IsValidUrl(searchTerms))
             {
-                OnDownloadFailed(ex);
-            }
-        }
-
-        /// <summary>
-        /// Downloads a YouTube video using YoutubeExplode with quality selection.
-        /// </summary>
-        private async Task DownloadFromYouTubeAsync(string url, CancellationToken token)
-        {
-            // Get video details and stream manifest.
-            var videoInfo = await _youtubeClient.Videos.GetAsync(url, token);
-            var streamManifest = await _youtubeClient.Videos.Streams.GetManifestAsync(videoInfo.Id, token);
-
-            // Select stream based on quality preference
-            IStreamInfo streamInfo = null;
-
-            if (_preferredQuality == "audio")
-            {
-                // Audio only - get best audio
-                streamInfo = streamManifest.GetAudioStreams().GetWithHighestBitrate();
-                if (streamInfo == null)
+                results.Add(new Result
                 {
-                    throw new Exception("No suitable audio streams found for this video.");
-                }
-            }
-            else if (_preferredQuality == "best")
-            {
-                // Try to get a muxed stream first
-                streamInfo = streamManifest.GetMuxedStreams().GetWithHighestVideoQuality();
+                    Title = $"🎥  Download Video: {GetDomainFromUrl(searchTerms)}",
+                    SubTitle = $"Download to: {_downloadPath} | Format: {_videoFormat}",
+                    IcoPath = GetIconPath(),
+                    Action = context =>
+                    {
+                        DownloadVideo(searchTerms);
+                        return true;
+                    }
+                });
+
+                results.Add(new Result
+                {
+                    Title = "🎵  Download Audio Only",
+                    SubTitle = $"Extract audio to: {_downloadPath} | Format: {_audioFormat}",
+                    IcoPath = GetIconPath(),
+                    Action = context =>
+                    {
+                        DownloadAudio(searchTerms);
+                        return true;
+                    }
+                });
+
+                results.Add(new Result
+                {
+                    Title = "📥  Download & Open Folder",
+                    SubTitle = $"Download video and open {_downloadPath}",
+                    IcoPath = GetIconPath(),
+                    Action = context =>
+                    {
+                        DownloadVideoAndOpenFolder(searchTerms);
+                        return true;
+                    }
+                });
+
+                results.Add(new Result
+                {
+                    Title = "🎧  Download Audio & Open Folder", 
+                    SubTitle = $"Download audio and open {_downloadPath}",
+                    IcoPath = GetIconPath(),
+                    Action = context =>
+                    {
+                        DownloadAudioAndOpenFolder(searchTerms);
+                        return true;
+                    }
+                });
+
+                results.Add(new Result
+                {
+                    Title = "⚙️  Choose Quality",
+                    SubTitle = "Select video quality before download",
+                    IcoPath = GetIconPath(),
+                    Action = context =>
+                    {
+                        ShowQualityOptions(searchTerms);
+                        return true;
+                    }
+                });
+
+                results.Add(new Result
+                {
+                    Title = "📁  Open Download Folder",
+                    SubTitle = $"Open {_downloadPath}",
+                    IcoPath = GetIconPath(),
+                    Action = context =>
+                    {
+                        OpenDownloadFolder();
+                        return true;
+                    }
+                });
             }
             else
             {
-                // Try to get the specific quality
-                int height = int.Parse(_preferredQuality.Replace("p", ""));
-
-                // First try muxed streams
-                streamInfo = streamManifest.GetMuxedStreams()
-                    .Where(s => s.VideoResolution.Height <= height)
-                    .OrderByDescending(s => s.VideoResolution.Height)
-                    .FirstOrDefault();
-
-                // If no muxed stream found, we'll need to download video and audio separately
-                if (streamInfo == null)
+                results.Add(new Result
                 {
-                    var videoStream = streamManifest.GetVideoStreams()
-                        .Where(s => s.VideoResolution.Height <= height)
-                        .OrderByDescending(s => s.VideoResolution.Height)
-                        .FirstOrDefault();
-
-                    var audioStream = streamManifest.GetAudioStreams().GetWithHighestBitrate();
-
-                    if (videoStream != null && audioStream != null)
-                    {
-                        // Build a safe file name from the video title
-                        string fileName = SanitizeFileName(videoInfo.Title) + ".mp4";
-                        string filePath = Path.Combine(_downloadFolder, fileName);
-
-                        // Download separate streams and mux them
-                        await DownloadVideoAndAudioAsync(videoStream, audioStream, filePath, token);
-                        return;
-                    }
-                }
+                    Title = "❌  Invalid URL",
+                    SubTitle = "Please provide a valid video URL (YouTube, Vimeo, etc.)",
+                    IcoPath = GetIconPath(),
+                    Action = context => false
+                });
             }
 
-            // If no stream found based on quality preference, fall back to best available
-            if (streamInfo == null)
-            {
-                // Try to get any muxed stream
-                streamInfo = streamManifest.GetMuxedStreams().GetWithHighestVideoQuality();
-
-                // If still no stream found, try separate video and audio
-                if (streamInfo == null)
-                {
-                    var videoStream = streamManifest.GetVideoStreams().GetWithHighestVideoQuality();
-                    var audioStream = streamManifest.GetAudioStreams().GetWithHighestBitrate();
-
-                    if (videoStream == null || audioStream == null)
-                    {
-                        throw new Exception("No suitable streams found for this video.");
-                    }
-
-                    // Build a safe file name from the video title
-                    string fileName = SanitizeFileName(videoInfo.Title) + ".mp4";
-                    string filePath = Path.Combine(_downloadFolder, fileName);
-
-                    // Download separate streams and mux them
-                    await DownloadVideoAndAudioAsync(videoStream, audioStream, filePath, token);
-                    return;
-                }
-            }
-
-            // For a single stream, download directly
-            string extension = _preferredQuality == "audio" ? ".mp3" : "." + streamInfo.Container;
-            string streamFileName = SanitizeFileName(videoInfo.Title) + extension;
-            string streamFilePath = Path.Combine(_downloadFolder, streamFileName);
-
-            // Download the stream to file
-            await _youtubeClient.Videos.Streams.DownloadAsync(streamInfo, streamFilePath, null, token);
+            return results;
         }
 
-        /// <summary>
-        /// Downloads separate video and audio streams and combines them.
-        /// </summary>
-        private async Task DownloadVideoAndAudioAsync(IVideoStreamInfo videoStream, IStreamInfo audioStream, string outputPath, CancellationToken token)
+        private string GetIconPath()
         {
-            // Create temporary files for the streams
-            string videoTempPath = Path.Combine(_downloadFolder, $"temp_video_{Guid.NewGuid()}.{videoStream.Container}");
-            string audioTempPath = Path.Combine(_downloadFolder, $"temp_audio_{Guid.NewGuid()}.{audioStream.Container}");
+            // Use dark icon by default, fallback to light if dark doesn't exist
+            if (!string.IsNullOrEmpty(_iconPathDark) && File.Exists(_iconPathDark))
+                return _iconPathDark;
 
+            if (!string.IsNullOrEmpty(_iconPathLight) && File.Exists(_iconPathLight))
+                return _iconPathLight;
+
+            return _iconPathDark; // Return dark path even if file doesn't exist
+        }
+
+        private bool IsValidUrl(string url)
+        {
+            return Uri.TryCreate(url, UriKind.Absolute, out Uri result) &&
+                   (result.Scheme == Uri.UriSchemeHttp || result.Scheme == Uri.UriSchemeHttps);
+        }
+
+        private string GetDomainFromUrl(string url)
+        {
             try
             {
-                // Download video stream
-                await _youtubeClient.Videos.Streams.DownloadAsync(videoStream, videoTempPath, null, token);
+                var uri = new Uri(url);
+                return uri.Host;
+            }
+            catch
+            {
+                return "Unknown";
+            }
+        }
 
-                // Download audio stream
-                await _youtubeClient.Videos.Streams.DownloadAsync(audioStream, audioTempPath, null, token);
+        private bool IsYtDlpAvailable()
+        {
+            var ytDlpPath = GetYtDlpExecutablePath();
+            return File.Exists(ytDlpPath) && new FileInfo(ytDlpPath).Length > 1000000; // At least 1MB
+        }
 
-                // Use FFmpeg (via yt-dlp) to combine them if available
-                if (_ytDlpAvailable)
+        private void SetupYtDlp()
+        {
+            Task.Run(() =>
+            {
+                var pluginDir = _context.CurrentPluginMetadata.PluginDirectory;
+                var ytDlpPath = Path.Combine(pluginDir, "yt-dlp.exe");
+                var escapedPath = ytDlpPath.Replace("'", "''"); // Escape for PowerShell
+
+                try
                 {
-                    // Using yt-dlp's built-in FFmpeg to mux files
+                    // Show progress window with properly escaped paths
                     var startInfo = new ProcessStartInfo
                     {
-                        FileName = _ytDlpPath,
-                        Arguments = $"--remux-video mp4 --output \"{outputPath}\" \"{videoTempPath}\" --audio-file \"{audioTempPath}\"",
-                        UseShellExecute = false,
-                        RedirectStandardOutput = true,
-                        RedirectStandardError = true,
-                        CreateNoWindow = true
+                        FileName = "cmd.exe",
+                        Arguments = $"/c echo Setting up Video Downloader... && echo. && echo Downloading yt-dlp.exe... && powershell -WindowStyle Normal -Command \"" +
+                                   $"try {{ " +
+                                   $"Write-Host 'Downloading from GitHub...' -ForegroundColor Green; " +
+                                   $"Invoke-WebRequest -Uri 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' -OutFile '{escapedPath}' -UseBasicParsing; " +
+                                   $"if (Test-Path '{escapedPath}') {{ " +
+                                   $"$size = [Math]::Round((Get-Item '{escapedPath}').Length / 1MB, 2); " +
+                                   $"Write-Host 'Success! Downloaded yt-dlp.exe ($size MB)' -ForegroundColor Green; " +
+                                   $"Write-Host 'Video Downloader is ready to use!' -ForegroundColor Cyan; " +
+                                   $"}} else {{ throw 'Download failed' }} " +
+                                   $"}} catch {{ " +
+                                   $"Write-Host 'Download failed. Please check internet connection.' -ForegroundColor Red; " +
+                                   $"Write-Host 'Manual download: https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' -ForegroundColor Yellow " +
+                                   $"}}; " +
+                                   $"Write-Host 'Press any key to continue...'; " +
+                                   $"$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')\"",
+                        UseShellExecute = true,
+                        CreateNoWindow = false,
+                        WorkingDirectory = pluginDir
                     };
 
-                    using var process = new Process { StartInfo = startInfo };
-                    var tcs = new TaskCompletionSource<bool>();
-                    process.Exited += (s, e) => tcs.TrySetResult(process.ExitCode == 0);
-                    process.Start();
-                    await tcs.Task;
+                    Process.Start(startInfo);
                 }
-                else
+                catch
                 {
-                    // If no yt-dlp available, just copy the video file
-                    File.Copy(videoTempPath, outputPath, true);
+                    // Fallback: create a simple batch file for download
+                    var batchPath = Path.Combine(pluginDir, "setup.bat");
+                    var batchContent = $@"@echo off
+echo Setting up Video Downloader...
+echo.
+echo Downloading yt-dlp.exe...
+powershell -Command ""Invoke-WebRequest -Uri 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' -OutFile '{escapedPath}' -UseBasicParsing""
+if exist ""{ytDlpPath}"" (
+    echo Success! Video Downloader is ready.
+) else (
+    echo Download failed. Check internet connection.
+    echo Manual download: https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
+)
+pause
+del ""%~f0""
+";
+                    File.WriteAllText(batchPath, batchContent);
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = batchPath,
+                        UseShellExecute = true,
+                        WorkingDirectory = pluginDir
+                    });
                 }
-            }
-            finally
-            {
-                // Clean up temp files
-                try { if (File.Exists(videoTempPath)) File.Delete(videoTempPath); } catch { }
-                try { if (File.Exists(audioTempPath)) File.Delete(audioTempPath); } catch { }
-            }
-        }
-
-
-        /// <summary>
-        /// Downloads YouTube video using yt-dlp external process with quality selection.
-        /// </summary>
-        private async Task DownloadFromYouTubeWithYtDlpAsync(string url, CancellationToken token)
-        {
-            if (!_ytDlpAvailable)
-            {
-                throw new Exception(YtDlpMissingMessage);
-            }
-
-            // Create a temporary directory for output template
-            string outputTemplate = Path.Combine(_downloadFolder, "%(title)s.%(ext)s");
-
-            // Determine format based on quality preference
-            string formatOption;
-
-            switch (_preferredQuality)
-            {
-                case "1080p":
-                    formatOption = "bestvideo[height<=1080]+bestaudio/best[height<=1080]";
-                    break;
-                case "720p":
-                    formatOption = "bestvideo[height<=720]+bestaudio/best[height<=720]";
-                    break;
-                case "480p":
-                    formatOption = "bestvideo[height<=480]+bestaudio/best[height<=480]";
-                    break;
-                case "360p":
-                    formatOption = "bestvideo[height<=360]+bestaudio/best[height<=360]";
-                    break;
-                case "audio":
-                    formatOption = "bestaudio";
-                    break;
-                default: // "best"
-                    formatOption = "bestvideo+bestaudio/best";
-                    break;
-            }
-
-            // Determine output format
-            string outputFormat = _preferredQuality == "audio" ? "mp3" : "mp4";
-
-            // Build process arguments
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = _ytDlpPath,
-                Arguments = $"-f \"{formatOption}\" --merge-output-format {outputFormat} --output \"{outputTemplate}\" \"{url}\"",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
-
-            // Add cookies file if available
-            if (!string.IsNullOrEmpty(_cookiesFilePath) && File.Exists(_cookiesFilePath))
-            {
-                startInfo.Arguments += $" --cookies \"{_cookiesFilePath}\"";
-            }
-
-            // For audio only, add extraction options
-            if (_preferredQuality == "audio")
-            {
-                startInfo.Arguments += " -x --audio-format mp3";
-            }
-
-            using var process = new Process { StartInfo = startInfo };
-
-            // Create a TaskCompletionSource to wait for process completion
-            var tcs = new TaskCompletionSource<bool>();
-
-            // Setup cancellation
-            token.Register(() => {
-                try { if (!process.HasExited) process.Kill(); } catch { }
             });
-
-            // Buffer for capturing output
-            var outputBuffer = new List<string>();
-            var errorBuffer = new List<string>();
-
-            // Handle output
-            process.OutputDataReceived += (s, e) => {
-                if (e.Data != null)
-                {
-                    outputBuffer.Add(e.Data);
-                    // Log useful info like download progress
-                    if (e.Data.Contains("%"))
-                    {
-                        Log.Info(e.Data, GetType());
-                    }
-                }
-            };
-
-            process.ErrorDataReceived += (s, e) => {
-                if (e.Data != null)
-                {
-                    errorBuffer.Add(e.Data);
-                    Log.Error(e.Data, GetType());
-                }
-            };
-
-            process.Exited += (s, e) => tcs.TrySetResult(process.ExitCode == 0);
-
-            // Start process and begin reading outputs
-            process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-
-            // Wait for process to complete
-            bool success = await tcs.Task;
-            if (!success)
-            {
-                // If the process failed, throw an exception with the error output
-                string errorMessage = string.Join(Environment.NewLine, errorBuffer);
-                if (string.IsNullOrWhiteSpace(errorMessage))
-                {
-                    errorMessage = "Unknown yt-dlp error";
-                }
-                throw new Exception($"yt-dlp failed: {errorMessage}");
-            }
         }
 
-        /// <summary>
-        /// Downloads a video directly from a URL.
-        /// </summary>
-        private async Task DownloadFromDirectUrlAsync(string url, CancellationToken token)
+        private void DownloadVideo(string url)
         {
-            string fileName = GetFilenameFromUrl(url);
-            string filePath = Path.Combine(_downloadFolder, fileName);
-
-            using (var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, token))
-            {
-                response.EnsureSuccessStatusCode();
-                using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None))
-                {
-                    await response.Content.CopyToAsync(fs, token);
-                }
-            }
+            Task.Run(() => {
+                RunYtDlpCommand($"-f best -o \"{Path.Combine(_downloadPath, "%(title)s.%(ext)s")}\" \"{url}\"");
+                // Show notification with option to open folder
+                ShowDownloadCompleteNotification("video");
+            });
         }
 
-        /// <summary>
-        /// Downloads and installs yt-dlp to the plugin directory.
-        /// </summary>
-        private async Task<bool> InstallYtDlpAsync(CancellationToken token)
+        private void DownloadAudio(string url)
         {
-            try
-            {
-                // URL for Windows binary
-                string ytDlpUrl = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe";
-
-                // Make sure the bin directory exists
-                string binDir = Path.Combine(_pluginDirectory, "bin");
-                if (!Directory.Exists(binDir))
-                {
-                    Directory.CreateDirectory(binDir);
-                }
-
-                // Download the file
-                using (var response = await _httpClient.GetAsync(ytDlpUrl, HttpCompletionOption.ResponseHeadersRead, token))
-                {
-                    response.EnsureSuccessStatusCode();
-                    using (var fs = new FileStream(_ytDlpPath, FileMode.Create, FileAccess.Write, FileShare.None))
-                    {
-                        await response.Content.CopyToAsync(fs, token);
-                    }
-                }
-
-                _ytDlpAvailable = File.Exists(_ytDlpPath);
-                return _ytDlpAvailable;
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Failed to install yt-dlp: {ex.Message}", GetType());
-                return false;
-            }
+            Task.Run(() => {
+                RunYtDlpCommand($"-x --audio-format {_audioFormat} -o \"{Path.Combine(_downloadPath, "%(title)s.%(ext)s")}\" \"{url}\"");
+                // Show notification with option to open folder
+                ShowDownloadCompleteNotification("audio");
+            });
         }
 
-        /// <summary>
-        /// Checks if an exception is related to restricted content.
-        /// </summary>
-        private bool IsRestrictedContentException(Exception ex)
+        private void DownloadVideoAndOpenFolder(string url)
         {
-            string message = ex.Message.ToLowerInvariant();
-            return message.Contains("sign in") || 
-                   message.Contains("unplayable") || 
-                   message.Contains("restricted") || 
-                   message.Contains("private") ||
-                   message.Contains("unavailable") ||
-                   message.Contains("403");
+            Task.Run(() => {
+                RunYtDlpCommand($"-f best -o \"{Path.Combine(_downloadPath, "%(title)s.%(ext)s")}\" \"{url}\"");
+                // Wait a bit for download to start, then open folder
+                Task.Delay(2000).ContinueWith(_ => OpenDownloadFolder());
+            });
         }
 
-        /// <summary>
-        /// Called when a download completes successfully.
-        /// </summary>
-        private void OnDownloadSucceeded()
+        private void DownloadAudioAndOpenFolder(string url)
         {
-            // For simplicity, we display the download folder.
-            Context.API.ShowMsg(DownloadCompleteTitle, string.Format(DownloadCompleteMessage, _downloadFolder));
-            if (_openExplorerAfterDownload)
+            Task.Run(() => {
+                RunYtDlpCommand($"-x --audio-format {_audioFormat} -o \"{Path.Combine(_downloadPath, "%(title)s.%(ext)s")}\" \"{url}\"");
+                // Wait a bit for download to start, then open folder
+                Task.Delay(2000).ContinueWith(_ => OpenDownloadFolder());
+            });
+        }
+
+        private void ShowDownloadCompleteNotification(string type)
+        {
+            // Create a simple notification window that opens folder when clicked
+            Task.Delay(3000).ContinueWith(_ => {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c echo {type} download started! && echo Press any key to open download folder... && pause && explorer \"{_downloadPath}\"",
+                    UseShellExecute = true,
+                    CreateNoWindow = false
+                };
+
+                try
+                {
+                    Process.Start(startInfo);
+                }
+                catch { /* Ignore errors */ }
+            });
+        }
+
+        private void ShowQualityOptions(string url)
+        {
+            Task.Run(() => RunYtDlpCommand($"-F \"{url}\""));
+        }
+
+        private void ChangeDownloadFolder()
+        {
+            Task.Run(() =>
             {
                 try
                 {
-                    Process.Start("explorer.exe", $"/select,\"{_downloadFolder}\"");
+                    // Open folder selection dialog using PowerShell
+                    var startInfo = new ProcessStartInfo
+                    {
+                        FileName = "powershell.exe",
+                        Arguments = $"-WindowStyle Hidden -Command \"" +
+                                   $"Add-Type -AssemblyName System.Windows.Forms; " +
+                                   $"$folder = New-Object System.Windows.Forms.FolderBrowserDialog; " +
+                                   $"$folder.Description = 'Select Download Folder'; " +
+                                   $"$folder.SelectedPath = '{_downloadPath.Replace("'", "''")}'; " +
+                                   $"if ($folder.ShowDialog() -eq 'OK') {{ " +
+                                   $"Write-Host $folder.SelectedPath " +
+                                   $"}}\"",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    };
+
+                    var process = Process.Start(startInfo);
+                    if (process != null)
+                    {
+                        var output = process.StandardOutput.ReadToEnd().Trim();
+                        process.WaitForExit();
+
+                        if (!string.IsNullOrEmpty(output) && Directory.Exists(output))
+                        {
+                            _downloadPath = output;
+
+                            // Show confirmation
+                            var confirmInfo = new ProcessStartInfo
+                            {
+                                FileName = "cmd.exe",
+                                Arguments = $"/c echo Download folder changed to: && echo {_downloadPath} && pause",
+                                UseShellExecute = true,
+                                CreateNoWindow = false
+                            };
+                            Process.Start(confirmInfo);
+                        }
+                    }
                 }
-                catch (Exception ex)
+                catch
                 {
-                    // Log error and notify user if Explorer cannot be opened.
-                    Log.Error($"Could not open Explorer: {ex.Message}", GetType());
-                    Context.API.ShowMsg("Error", "Could not open Explorer: " + ex.Message);
+                    // Fallback: just open current folder
+                    OpenDownloadFolder();
+                }
+            });
+        }
+
+        private void OpenDownloadFolder()
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = _downloadPath,
+                    UseShellExecute = true
+                });
+            }
+            catch
+            {
+                // Fallback: use explorer
+                try
+                {
+                    Process.Start("explorer.exe", $"\"{_downloadPath}\"");
+                }
+                catch { /* Ignore errors */ }
+            }
+        }
+
+        private void RunYtDlpCommand(string arguments)
+        {
+            var ytDlpPath = GetYtDlpExecutablePath();
+
+            try
+            {
+                // Try direct execution first
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = ytDlpPath,
+                    Arguments = arguments,
+                    UseShellExecute = true,
+                    CreateNoWindow = false,
+                    WorkingDirectory = _downloadPath
+                };
+
+                Process.Start(startInfo);
+            }
+            catch
+            {
+                // Fallback to cmd if direct execution fails
+                try
+                {
+                    var quotedPath = $"\"{ytDlpPath}\"";
+                    var startInfo = new ProcessStartInfo
+                    {
+                        FileName = "cmd.exe", 
+                        Arguments = $"/k {quotedPath} {arguments}",
+                        UseShellExecute = true,
+                        CreateNoWindow = false,
+                        WorkingDirectory = _downloadPath
+                    };
+
+                    Process.Start(startInfo);
+                }
+                catch
+                {
+                    ShowInstallationDialog();
                 }
             }
         }
 
-        /// <summary>
-        /// Called when a download fails.
-        /// </summary>
-        private void OnDownloadFailed(Exception ex)
+        private string GetYtDlpExecutablePath()
         {
-            Log.Error(ex.ToString(), GetType());
-            // Display a user-friendly error message.
-            Context.API.ShowMsg(DownloadFailedTitle, ex.Message);
-        }
+            // Priority order: plugin directory > PATH > system locations
+            var pluginDir = _context.CurrentPluginMetadata.PluginDirectory;
+            var localYtDlp = Path.Combine(pluginDir, "yt-dlp.exe");
 
-        /// <summary>
-        /// Checks whether the URL is a YouTube URL.
-        /// </summary>
-        private bool IsYouTubeUrl(string url)
-        {
-            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            // 1. Check plugin directory first
+            if (File.Exists(localYtDlp))
+                return localYtDlp;
+
+            // 2. Check if yt-dlp is in PATH (pip installation)
+            try
             {
-                return uri.Host.EndsWith("youtube.com", StringComparison.OrdinalIgnoreCase) ||
-                       uri.Host.EndsWith("youtu.be", StringComparison.OrdinalIgnoreCase);
+                var process = Process.Start(new ProcessStartInfo
+                {
+                    FileName = "yt-dlp",
+                    Arguments = "--version",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true
+                });
+
+                if (process != null)
+                {
+                    process.WaitForExit(3000);
+                    if (process.ExitCode == 0)
+                        return "yt-dlp";
+                }
             }
-            return false;
+            catch { }
+
+            // 3. Check common system locations
+            var systemPaths = new[]
+            {
+                @"C:\yt-dlp\yt-dlp.exe",
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "yt-dlp", "yt-dlp.exe"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "yt-dlp", "yt-dlp.exe")
+            };
+
+            foreach (var path in systemPaths)
+            {
+                if (File.Exists(path))
+                    return path;
+            }
+
+            // 4. Default to plugin directory (will be downloaded)
+            return localYtDlp;
         }
 
-        /// <summary>
-        /// Extracts a file name from the URL. If no name is found, defaults to "video.mp4".
-        /// </summary>
-        private string GetFilenameFromUrl(string url)
+        private void ShowInstallationDialog()
         {
-            var uri = new Uri(url);
-            var path = uri.LocalPath.TrimEnd('/');
-            var filename = Path.GetFileName(path);
-            if (string.IsNullOrEmpty(filename))
-                filename = "video";
-            if (string.IsNullOrEmpty(Path.GetExtension(filename)))
-                filename += ".mp4";
-            return SanitizeFileName(filename);
-        }
+            var pluginDir = _context.CurrentPluginMetadata.PluginDirectory;
+            var ytDlpPath = Path.Combine(pluginDir, "yt-dlp.exe");
 
-        /// <summary>
-        /// Replaces illegal characters in file names.
-        /// </summary>
-        private string SanitizeFileName(string filename)
-        {
-            return Regex.Replace(filename, @"[\\/*?:""<>.|]", "_");
+            if (!File.Exists(ytDlpPath))
+            {
+                var escapedPath = ytDlpPath.Replace("'", "''"); // Escape single quotes for PowerShell
+
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/c echo Downloading yt-dlp.exe... && powershell -Command \"Invoke-WebRequest -Uri 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' -OutFile '{escapedPath}' -UseBasicParsing\" && echo Download complete! && pause",
+                    UseShellExecute = true,
+                    CreateNoWindow = false,
+                    WorkingDirectory = pluginDir
+                };
+
+                Process.Start(startInfo);
+            }
+            else
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = "/c echo yt-dlp.exe found but failed to run. Check if Windows Defender is blocking it. && pause",
+                    UseShellExecute = true,
+                    CreateNoWindow = false
+                };
+
+                Process.Start(startInfo);
+            }
         }
 
         public void Init(PluginInitContext context)
         {
-            Context = context ?? throw new ArgumentNullException(nameof(context));
-            Context.API.ThemeChanged += OnThemeChanged;
-            UpdateIconPath(Context.API.GetCurrentTheme());
+            _context = context ?? throw new ArgumentNullException(nameof(context));
 
-            // Get the plugin directory
-            _pluginDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            // Set up icon paths for both themes
+            _iconPathDark = Path.Combine(context.CurrentPluginMetadata.PluginDirectory, "Images", "videodownloader.dark.png");
+            _iconPathLight = Path.Combine(context.CurrentPluginMetadata.PluginDirectory, "Images", "videodownloader.light.png");
 
-            // Set yt-dlp path
-            _ytDlpPath = Path.Combine(_pluginDirectory, "bin", "yt-dlp.exe");
-            _ytDlpAvailable = File.Exists(_ytDlpPath);
-
-            // Check for cookies file
-            _cookiesFilePath = Path.Combine(_pluginDirectory, "cookies.txt");
-
-            // Create a download folder under the user's Videos directory.
-            _downloadFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "PowerToysDownloads");
-            if (!Directory.Exists(_downloadFolder))
-                Directory.CreateDirectory(_downloadFolder);
-
-            // Load settings
-            LoadSettings();
-        }
-
-        private void UpdateIconPath(Theme theme)
-        {
-            IconPath = (theme == Theme.Light || theme == Theme.HighContrastWhite)
-                ? "Images/videodownloader.light.png"
-                : "Images/videodownloader.dark.png";
-        }
-
-        private void OnThemeChanged(Theme current, Theme newTheme)
-        {
-            UpdateIconPath(newTheme);
-        }
-
-        public List<ContextMenuResult> LoadContextMenus(Result selectedResult)
-        {
-            var contextMenus = new List<ContextMenuResult>();
-            if (selectedResult.ContextData is string url)
+            // Ensure download directory exists
+            if (!Directory.Exists(_downloadPath))
             {
-                // Basic options
-                contextMenus.Add(new ContextMenuResult
+                try
                 {
-                    PluginName = Name,
-                    Title = "Copy URL",
-                    Glyph = CopyIcon,
-                    Action = _ =>
-                    {
-                        try { Clipboard.SetText(url); } catch { }
-                        return true;
-                    }
-                });
-
-                contextMenus.Add(new ContextMenuResult
-                {
-                    PluginName = Name,
-                    Title = "Open Download Folder",
-                    Glyph = FolderIcon,
-                    Action = _ =>
-                    {
-                        try { Process.Start("explorer.exe", _downloadFolder); } catch { }
-                        return true;
-                    }
-                });
-
-                // Add video quality options
-                contextMenus.Add(new ContextMenuResult
-                {
-                    PluginName = Name,
-                    Title = "Video Quality Options",
-                    Glyph = QualityIcon,
-                    Action = _ => false, // This item is just a header
-                });
-
-                // Add each quality option as a separate menu item
-                foreach (var quality in _qualityOptions)
-                {
-                    contextMenus.Add(new ContextMenuResult
-                    {
-                        PluginName = Name,
-                        Title = $"{(quality.Key == _preferredQuality ? "✓ " : "")}{quality.Value}",
-                        Action = _ =>
-                        {
-                            _preferredQuality = quality.Key;
-                            SaveSettings();
-                            return false;
-                        }
-                    });
+                    Directory.CreateDirectory(_downloadPath);
                 }
-
-                // YouTube-specific options
-                if (IsYouTubeUrl(url))
+                catch
                 {
-                    contextMenus.Add(new ContextMenuResult
-                    {
-                        PluginName = Name,
-                        Title = "Select Cookies File (for restricted videos)",
-                        Glyph = CookieIcon,
-                        Action = _ =>
-                        {
-                            Task.Run(() => SelectCookiesFileAsync());
-                            return true;
-                        }
-                    });
-
-                    contextMenus.Add(new ContextMenuResult
-                    {
-                        PluginName = Name,
-                        Title = _ytDlpAvailable 
-                            ? "Download using yt-dlp (for restricted videos)" 
-                            : "Install yt-dlp (for restricted videos)",
-                        Glyph = DownloadIcon,
-                        Action = _ =>
-                        {
-                            Task.Run(async () => 
-                            {
-                                if (!_ytDlpAvailable && _autoInstallYtDlp)
-                                {
-                                    Context.API.ShowMsg(YtDlpInstallingMessage, "Required for restricted content");
-                                    await InstallYtDlpAsync(CancellationToken.None);
-                                }
-
-                                if (_ytDlpAvailable)
-                                {
-                                    await DownloadVideoAsync(url);
-                                }
-                                else
-                                {
-                                    Context.API.ShowMsg(YtDlpMissingMessage, "Could not install yt-dlp");
-                                }
-                            });
-                            return true;
-                        }
-                    });
+                    // Fallback to Downloads folder if MyVideos doesn't work
+                    _downloadPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "Downloads");
                 }
             }
-            return contextMenus;
         }
 
-        private async Task SelectCookiesFileAsync()
+        public void ReloadData()
         {
-            // This must be run on an STA thread for the dialog to work properly
-            await Task.Run(() => {
-                var dialog = new Microsoft.Win32.OpenFileDialog
-                {
-                    Filter = "Cookies files (*.txt)|*.txt|All files (*.*)|*.*",
-                    Title = "Select YouTube cookies file"
-                };
-
-                if (dialog.ShowDialog() == true)
-                {
-                    _cookiesFilePath = dialog.FileName;
-                    SaveSettings();
-                    Context.API.ShowMsg("Cookies File Selected", $"Using: {_cookiesFilePath}");
-                }
-            });
-        }
-
-        /// <summary>
-        /// Load settings from the plugin's data file
-        /// </summary>
-        private void LoadSettings()
-        {
-            try
+            // Reload plugin data if needed
+            if (_context != null)
             {
-                string settingsPath = Path.Combine(_pluginDirectory, "settings.txt");
-                if (File.Exists(settingsPath))
-                {
-                    var lines = File.ReadAllLines(settingsPath);
-                    foreach (var line in lines)
-                    {
-                        var parts = line.Split('=');
-                        if (parts.Length == 2)
-                        {
-                            string key = parts[0].Trim();
-                            string value = parts[1].Trim();
-
-                            switch (key)
-                            {
-                                case "OpenExplorerAfterDownload":
-                                    _openExplorerAfterDownload = bool.Parse(value);
-                                    break;
-                                case "PreferYtDlp":
-                                    _preferYtDlp = bool.Parse(value);
-                                    break;
-                                case "AutoInstallYtDlp":
-                                    _autoInstallYtDlp = bool.Parse(value);
-                                    break;
-                                case "PreferredQuality":
-                                    if (_qualityOptions.ContainsKey(value))
-                                    {
-                                        _preferredQuality = value;
-                                    }
-                                    break;
-                                case "CookiesFilePath":
-                                    if (File.Exists(value))
-                                    {
-                                        _cookiesFilePath = value;
-                                    }
-                                    break;
-                                case "DownloadFolder":
-                                    if (Directory.Exists(value))
-                                    {
-                                        _downloadFolder = value;
-                                    }
-                                    break;
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Error($"Failed to load settings: {ex.Message}", GetType());
+                // Refresh settings or reinitialize if needed
             }
         }
 
-        /// <summary>
-        /// Save settings to the plugin's data file
-        /// </summary>
-        private void SaveSettings()
+        public void Dispose()
         {
-            try
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed && disposing)
             {
-                string settingsPath = Path.Combine(_pluginDirectory, "settings.txt");
-                var settings = new List<string>
-                {
-                    $"OpenExplorerAfterDownload={_openExplorerAfterDownload}",
-                    $"PreferYtDlp={_preferYtDlp}",
-                    $"AutoInstallYtDlp={_autoInstallYtDlp}",
-                    $"PreferredQuality={_preferredQuality}",
-                                        $"CookiesFilePath={_cookiesFilePath}",
-                                        $"DownloadFolder={_downloadFolder}"
-                                    };
-                                    File.WriteAllLines(settingsPath, settings);
-                                }
-                                catch (Exception ex)
-                                {
-                                    Log.Error($"Failed to save settings: {ex.Message}", GetType());
-                                }
-                            }
-
-                            // IPluginI18n implementation for localization support.
-                            public string GetTranslatedPluginTitle() => Name;
-                            public string GetTranslatedPluginDescription() => Description;
-
-                            public void Dispose()
-                            {
-                                Dispose(true);
-                                GC.SuppressFinalize(this);
-                            }
-
-                            protected virtual void Dispose(bool disposing)
-                            {
-                                if (Disposed || !disposing)
-                                    return;
-
-                                Context.API.ThemeChanged -= OnThemeChanged;
-                                _httpClient.Dispose();
-                                _downloadCancellationTokenSource?.Dispose();
-                                Disposed = true;
-                            }
-                        }
-                    }
+                _disposed = true;
+            }
+        }
+    }
+}
