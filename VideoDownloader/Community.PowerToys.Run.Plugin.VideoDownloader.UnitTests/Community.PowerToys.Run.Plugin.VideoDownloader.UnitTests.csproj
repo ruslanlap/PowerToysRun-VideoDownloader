@@ -13,7 +13,10 @@
     <PackageReference Include="MSTest" Version="3.6.3" />
     <PackageReference Include="System.IO.Abstractions" Version="21.0.29" />
     <PackageReference Include="System.Runtime" Version="4.3.1" />
-    <PackageReference Include="Community.PowerToys.Run.Plugin.Dependencies" Version="1.0.5" />
+    <!-- Temporarily commenting out this reference as it's causing build issues -->
+    <!-- <PackageReference Include="Community.PowerToys.Run.Plugin.Dependencies" Version="1.0.5" /> -->
+    <PackageReference Include="Microsoft.PowerToys.Settings.UI.Library" Version="0.75.0" />
+    <PackageReference Include="Wox.Plugin" Version="1.4.0" />
   </ItemGroup>
 
   <ItemGroup>

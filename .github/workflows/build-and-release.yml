@@ -35,8 +35,16 @@ jobs:
         with:
           dotnet-version: '9.0.x'
       
+      - name: Add NuGet Sources
+        run: |
+          dotnet nuget add source https://api.nuget.org/v3/index.json --name nuget.org
+          dotnet nuget list source
+      
+      - name: Restore dependencies
+        run: dotnet restore VideoDownloader/VideoDownloader.sln
+      
       - name: Build
-        run: dotnet build VideoDownloader/VideoDownloader.sln -c Release -p:Platform="${{ matrix.platform }}"
+        run: dotnet build VideoDownloader/VideoDownloader.sln -c Release -p:Platform="${{ matrix.platform }}" --no-restore
       
       - name: Get version
         id: get_version
