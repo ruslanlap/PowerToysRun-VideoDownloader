@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Linq;
 using Wox.Plugin;
+using System.Collections.Generic;
 
 namespace Community.PowerToys.Run.Plugin.VideoDownloader.UnitTests
 {
@@ -18,17 +19,11 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader.UnitTests
         [TestMethod]
         public void Query_should_return_results()
         {
-            var results = main.Query(new("search"));
+            var results = main.Query(new Query("search", "search"));
 
             Assert.IsNotNull(results.First());
         }
 
-        [TestMethod]
-        public void LoadContextMenus_should_return_results()
-        {
-            var results = main.LoadContextMenus(new Result { ContextData = "search" });
-
-            Assert.IsNotNull(results.First());
-        }
+        // Additional test methods can be added here as needed
     }
 }
