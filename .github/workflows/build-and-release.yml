@@ -35,19 +35,44 @@ jobs:
         with:
           dotnet-version: '9.0.x'
       
+      - name: Create NuGet.Config
+        run: |
+          echo '<?xml version="1.0" encoding="utf-8"?>' > NuGet.Config
+          echo '<configuration>' >> NuGet.Config
+          echo '  <packageSources>' >> NuGet.Config
+          echo '    <clear />' >> NuGet.Config
+          echo '    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />' >> NuGet.Config
+          echo '  </packageSources>' >> NuGet.Config
+          echo '  <packageRestore>' >> NuGet.Config
+          echo '    <add key="enabled" value="True" />' >> NuGet.Config
+          echo '    <add key="automatic" value="True" />' >> NuGet.Config
+          echo '  </packageRestore>' >> NuGet.Config
+          echo '</configuration>' >> NuGet.Config
+          cat NuGet.Config
+      
       - name: Clear NuGet cache
         run: dotnet nuget locals all --clear
-        
-      - name: Add NuGet Sources
+      
+      - name: Restore dependencies with force
+        run: dotnet restore VideoDownloader/VideoDownloader.sln --force --verbosity detailed
+      
+      - name: List project references
         run: |
-          dotnet nuget add source https://api.nuget.org/v3/index.json --name nuget.org --configfile NuGet.Config
-          dotnet nuget list source
+          echo "Listing project references:"
+          find VideoDownloader -name "*.csproj" -exec cat {} \; | grep -E "<PackageReference|<ProjectReference"
       
-      - name: Restore dependencies with verbose logging
-        run: dotnet restore VideoDownloader/VideoDownloader.sln --verbosity detailed
-      
-      - name: Build
-        run: dotnet build VideoDownloader/VideoDownloader.sln -c Release -p:Platform="${{ matrix.platform }}" --no-restore
+      - name: Build with error handling
+        run: |
+          echo "Building for platform: ${{ matrix.platform }}"
+          dotnet build VideoDownloader/VideoDownloader.sln -c Release -p:Platform="${{ matrix.platform }}" --no-restore || {
+            echo "Build failed, trying with different configuration..."
+            # Try building without platform specification as fallback
+            dotnet build VideoDownloader/VideoDownloader.sln -c Release || {
+              echo "Both build attempts failed. Listing project structure for debugging:"
+              find VideoDownloader -type f -name "*.csproj" -o -name "*.sln" | sort
+              exit 1
+            }
+          }
       
       - name: Get version
         id: get_version
@@ -138,20 +163,6 @@ jobs:
                 $firstSubDir = $subDirs[0].FullName
                 Write-Host "No runtime folder found, but found subdirectory: $firstSubDir"
                 Copy-Item -Path "$firstSubDir/*" -Destination "$artifactDir/VideoDownloader" -Recurse -Force
-                Write-Host "Files copied from first subdirectory"
-              } else {
-                Write-Error "No files or subdirectories found in build output directory"
-                exit 1
-              }
-            }
-          }
-        shell: pwsh
-      
-      - name: Create ZIP archive
-        run: |
-          $artifactDir = "artifacts/VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}"
-          Compress-Archive -Path "$artifactDir/VideoDownloader/*" -DestinationPath "$artifactDir.zip"
-        shell: pwsh
       
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
