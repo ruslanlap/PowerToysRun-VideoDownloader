@@ -35,44 +35,11 @@ jobs:
         with:
           dotnet-version: '9.0.x'
       
-      - name: Create NuGet.Config
-        run: |
-          echo '<?xml version="1.0" encoding="utf-8"?>' > NuGet.Config
-          echo '<configuration>' >> NuGet.Config
-          echo '  <packageSources>' >> NuGet.Config
-          echo '    <clear />' >> NuGet.Config
-          echo '    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />' >> NuGet.Config
-          echo '  </packageSources>' >> NuGet.Config
-          echo '  <packageRestore>' >> NuGet.Config
-          echo '    <add key="enabled" value="True" />' >> NuGet.Config
-          echo '    <add key="automatic" value="True" />' >> NuGet.Config
-          echo '  </packageRestore>' >> NuGet.Config
-          echo '</configuration>' >> NuGet.Config
-          cat NuGet.Config
+      - name: Restore NuGet packages
+        run: dotnet restore VideoDownloader/VideoDownloader.sln --configfile NuGet.Config
       
-      - name: Clear NuGet cache
-        run: dotnet nuget locals all --clear
-      
-      - name: Restore dependencies with force
-        run: dotnet restore VideoDownloader/VideoDownloader.sln --force --verbosity detailed
-      
-      - name: List project references
-        run: |
-          echo "Listing project references:"
-          find VideoDownloader -name "*.csproj" -exec cat {} \; | grep -E "<PackageReference|<ProjectReference"
-      
-      - name: Build with error handling
-        run: |
-          echo "Building for platform: ${{ matrix.platform }}"
-          dotnet build VideoDownloader/VideoDownloader.sln -c Release -p:Platform="${{ matrix.platform }}" --no-restore || {
-            echo "Build failed, trying with different configuration..."
-            # Try building without platform specification as fallback
-            dotnet build VideoDownloader/VideoDownloader.sln -c Release || {
-              echo "Both build attempts failed. Listing project structure for debugging:"
-              find VideoDownloader -type f -name "*.csproj" -o -name "*.sln" | sort
-              exit 1
-            }
-          }
+      - name: Build
+        run: dotnet build VideoDownloader/VideoDownloader.sln -c Release -p:Platform="${{ matrix.platform }}" --no-restore
       
       - name: Get version
         id: get_version
@@ -93,7 +60,7 @@ jobs:
       
       - name: Create output directory
         run: mkdir -p artifacts
-      
+          
       - name: Copy build output to artifacts directory
         run: |
           $artifactDir = "artifacts/VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}"
@@ -163,6 +130,20 @@ jobs:
                 $firstSubDir = $subDirs[0].FullName
                 Write-Host "No runtime folder found, but found subdirectory: $firstSubDir"
                 Copy-Item -Path "$firstSubDir/*" -Destination "$artifactDir/VideoDownloader" -Recurse -Force
+                Write-Host "Files copied from first subdirectory"
+              } else {
+                Write-Error "No files or subdirectories found in build output directory"
+                exit 1
+              }
+            }
+          }
+        shell: pwsh
+      
+      - name: Create ZIP archive
+        run: |
+          $artifactDir = "artifacts/VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}"
+          Compress-Archive -Path "$artifactDir/VideoDownloader/*" -DestinationPath "$artifactDir.zip"
+        shell: pwsh
       
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -203,45 +184,42 @@ jobs:
           echo "Listing release artifacts:"
           ls -la release-artifacts
       
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
       - name: Rename release artifacts for convention
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
           mv release-artifacts/VideoDownloader-x64.zip release-artifacts/VideoDownloader-v${VERSION}-x64.zip
           mv release-artifacts/VideoDownloader-ARM64.zip release-artifacts/VideoDownloader-v${VERSION}-arm64.zip
       
-      - name: Get version from tag
-        id: get_version
-        run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
-          echo "Using version: ${VERSION}"
-      
       - name: Prepare Release Notes
         id: release_notes
         run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          cat > release_notes.md << EOL
-          # VideoDownloader Plugin v${VERSION}
+          cat > release_notes.md << 'EOL'
+          # VideoDownloader Plugin v${{ steps.get_version.outputs.VERSION }}
 
-          ![VideoDownloader Plugin Logo](https://raw.githubusercontent.com/ruslanlap/PowerToysRun-VideoDownloader/main/assets/logo.png)
+          ![VideoDownloader Plugin Logo](https://raw.githubusercontent.com/ruslanlap/PowerToysRun-VideoDownloader/main/VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/Images/VideoDownloader.png)
 
           ## What's New
 
-          This release brings improvements to the VideoDownloader plugin!
+          This release brings significant UI improvements and refinements to the VideoDownloader plugin!
 
           ### Highlights
 
-          - Enhanced video downloading capabilities
-          - Support for more video platforms
-          - Improved performance and reliability
-          - Bug fixes and stability improvements
+          - Enhanced UI with professional color scheme
+          - Improved animations and transitions
+          - Better visual hierarchy and spacing
+          - Refined typography and status indicators
+          - Bug fixes and performance improvements
 
           ## Installation
 
           1. Download the ZIP file for your platform (x64 or ARM64)
           2. Extract to `%LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\`
           3. Restart PowerToys
-          4. Start using with `Alt+Space` then type `dl [URL]`
+          4. Start using with `Alt+Space` then type `VideoDownloader`
 
           ## Found a bug?
 
@@ -256,20 +234,22 @@ jobs:
       - name: Generate SHA256 checksums
         run: |
           cd release-artifacts
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
           sha256sum VideoDownloader-v${VERSION}-x64.zip > VideoDownloader-v${VERSION}-x64.zip.sha256
           sha256sum VideoDownloader-v${VERSION}-arm64.zip > VideoDownloader-v${VERSION}-arm64.zip.sha256
       
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          name: PowerToysRun-VideoDownloader v${VERSION}
+          name: PowerToysRun-VideoDownloader v${{ steps.get_version.outputs.VERSION }}
           body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
           draft: false
           prerelease: false
           files: |
-            release-artifacts/VideoDownloader-v${VERSION}-x64.zip
-            release-artifacts/VideoDownloader-v${VERSION}-arm64.zip
-            release-artifacts/VideoDownloader-v${VERSION}-x64.zip.sha256
-            release-artifacts/VideoDownloader-v${VERSION}-arm64.zip.sha256
+            release-artifacts/VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-x64.zip
+            release-artifacts/VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-arm64.zip
+            release-artifacts/VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-x64.zip.sha256
+            release-artifacts/VideoDownloader-v${{ steps.get_version.outputs.VERSION }}-arm64.zip.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

@@ -13,9 +13,7 @@
     <PackageReference Include="MSTest" Version="3.6.3" />
     <PackageReference Include="System.IO.Abstractions" Version="21.0.0" />
     <PackageReference Include="System.Runtime" Version="4.3.1" />
-    <PackageReference Include="YoutubeExplode" Version="6.3.10" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Community.PowerToys.Run.Plugin.Dependencies" Version="0.90.0" />
   </ItemGroup>
 
   <ItemGroup>
