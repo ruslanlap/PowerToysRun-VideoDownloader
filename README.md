@@ -6,8 +6,10 @@
   </a>
   <p><small>Latest version: v1.0.5 (x64 & ARM64) | 
     <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest">Other versions</a>
+    <img src="assets/demo-videodownloader.gif" width="24" height="24" style="vertical-align: middle; margin-left: 5px; border-radius: 3px;" alt="Demo">
   </small></p>
 </div>
+
 
 <div align="center">
 <p align="center">
@@ -433,23 +435,42 @@ See the [Releases](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/rel
 
 ---
 
-## 📸 Screenshots & Demo
+## 📸 Demo & Screenshots
+
+### Basic Usage
 <div align="center">
   <figure>
-    <img src="assets/demo.png" width="600" alt="Video Downloader in Action">
-    <figcaption>Downloading videos directly from PowerToys Run</figcaption>
+    <img src="assets/demo-videodownloader.gif" width="800" alt="Basic video download">
+    <figcaption>Downloading a video with default settings using the 'dl' command</figcaption>
   </figure>
-  
-  <div style="display: flex; justify-content: center; gap: 20px; margin: 20px 0;">
-    <figure>
-      <img src="assets/videodownloader.dark.png" width="128" alt="Dark Theme Icon">
-      <figcaption>Dark Theme</figcaption>
-    </figure>
-    <figure>
-      <img src="assets/videodownloader.light.png" width="128" alt="Light Theme Icon">
-      <figcaption>Light Theme</figcaption>
-    </figure>
-  </div>
+</div>
+
+### Audio Download & Format Selection
+<div align="center">
+  <figure>
+    <img src="assets/demo-videodownloader2.gif" width="800" alt="Audio download and format selection">
+    <figcaption>Downloading audio-only (MP3) and selecting different video qualities</figcaption>
+  </figure>
+</div>
+
+### Advanced Features
+<div align="center">
+  <figure>
+    <img src="assets/demo-videodownloader3.gif" width="800" alt="Advanced features">
+    <figcaption>Using advanced features: opening download folder and changing download location</figcaption>
+  </figure>
+</div>
+
+### Theme Support
+<div align="center" style="display: flex; justify-content: center; gap: 40px; margin: 20px 0;">
+  <figure style="text-align: center;">
+    <img src="assets/videodownloader.dark.png" width="128" alt="Dark Theme Icon">
+    <figcaption>Dark Theme</figcaption>
+  </figure>
+  <figure style="text-align: center;">
+    <img src="assets/videodownloader.light.png" width="128" alt="Light Theme Icon">
+    <figcaption>Light Theme</figcaption>
+  </figure>
 </div>
 
 ---
