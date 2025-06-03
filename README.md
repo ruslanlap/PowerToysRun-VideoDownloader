@@ -49,6 +49,13 @@
   </a>
 </div>
 
+<div align="center">
+  <img src="https://img.shields.io/badge/Supported%20Sites-1000%2B-success?style=flat-square" alt="Supported Sites">
+  <img src="https://img.shields.io/badge/Code%20Quality-A-brightgreen?style=flat-square" alt="Code Quality">
+  <img src="https://img.shields.io/badge/Windows%2011-Compatible-0078d7?style=flat-square&logo=windows" alt="Windows 11 Compatible">
+  <img src="https://img.shields.io/badge/PowerToys-v0.75%2B-0078d7?style=flat-square" alt="PowerToys v0.75+">
+</div>
+
 ---
 
 ## 🌟 Features
