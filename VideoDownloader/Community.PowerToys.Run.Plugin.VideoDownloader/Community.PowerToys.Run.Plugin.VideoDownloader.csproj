@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Community.PowerToys.Run.Plugin.Dependencies" Version="1.0.5" />
+    <PackageReference Include="Community.PowerToys.Run.Plugin.Dependencies" Version="0.91.0" />
   </ItemGroup>
 
   <ItemGroup>
