@@ -35,8 +35,17 @@ jobs:
         with:
           dotnet-version: '9.0.x'
       
+      - name: Configure NuGet sources
+        run: |
+          dotnet nuget remove source powertoys || true
+          dotnet nuget remove source github || true
+          dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org
+      
+      - name: Restore NuGet packages
+        run: dotnet restore VideoDownloader/VideoDownloader.sln --source https://api.nuget.org/v3/index.json
+      
       - name: Build
-        run: dotnet build VideoDownloader/VideoDownloader.sln -c Release -p:Platform="${{ matrix.platform }}"
+        run: dotnet build VideoDownloader/VideoDownloader.sln -c Release -p:Platform="${{ matrix.platform }}" --no-restore
       
       - name: Get version
         id: get_version
@@ -165,7 +174,7 @@ jobs:
           cat > release_notes.md << 'EOL'
           # 📝 VideoDownloader v${{ steps.get_version.outputs.VERSION }}
           
-          ![VideoDownloader Logo](https://raw.githubusercontent.com/ruslanlap/CommunityPowerToysRunPlugin-VideoDownloader/master/VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/Images/VideoDownloader.dark.png)
+          ![VideoDownloader Logo](https://raw.githubusercontent.com/ruslanlap/CommunityPowerToysRunPlugin-VideoDownloader/main/VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/Images/VideoDownloader.dark.png)
           
           ## ✨ What's New
           
@@ -179,18 +188,23 @@ jobs:
           1. Download the ZIP file for your platform (x64 or ARM64)
           2. Extract to `%LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\`
           3. Restart PowerToys
-          4. Start using with `Alt+Space` then type `qq`
+          4. Start using with `Alt+Space` then type `dl`
           
           ## 🔍 Quick Commands
           
           | Command | Description |
           |---------|-------------|
-          | `qq <text>` | Create a new note |
-          | `qq help` | Show help information |
-          | `qq search <word>` | Search notes |
-          | `qq edit <number>` | Edit a specific note |
-          | `qq view <number>` | View note details |
-          | `qq backup` | Backup notes |
+          | `dl <video url>` | Download a video from supported sites |
+          | `dl <search terms>` | Search and download videos |
+          | `dl help` | Show help information |
+          
+          ## 🌟 Features
+          
+          - 📹 Download videos from YouTube and 1000+ other sites
+          - 🎛️ Select download quality and format
+          - 🔄 Auto-installation of required dependencies
+          - 🎯 Context menu with additional options
+          - 💻 Support for both x64 and ARM64 platforms
           
           ## 🙏 Thank You
           
