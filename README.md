@@ -1,6 +1,12 @@
 # 🎥 PowerToys Run: Video Downloader
 
 <div align="center">
+  <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-v1.0.5-x64.zip" style="display: inline-block; margin: 1rem 0;">
+    <img src="https://img.shields.io/badge/Download_Now-2088FF?style=for-the-badge&logo=github&logoColor=white&labelColor=24292f" alt="Download Now">
+  </a>
+</div>
+
+<div align="center">
 <p align="center">
   <img src="assets/logo.png" width="428" alt="Plugin Logo" alt="logo">
 </p>
@@ -54,6 +60,7 @@
   <img src="https://img.shields.io/badge/Code%20Quality-A-brightgreen?style=flat-square" alt="Code Quality">
   <img src="https://img.shields.io/badge/Windows%2011-Compatible-0078d7?style=flat-square&logo=windows" alt="Windows 11 Compatible">
   <img src="https://img.shields.io/badge/PowerToys-v0.75%2B-0078d7?style=flat-square" alt="PowerToys v0.75+">
+  <img src="https://img.shields.io/badge/Automated%20Builds-CI%2FCD-2088FF?style=flat-square&logo=github-actions" alt="Automated Builds">
 </div>
 
 ---
@@ -398,7 +405,14 @@ MIT License. See [LICENSE](LICENSE).
 
 ## 📝 Changelog
 
-See the [Releases](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases) page for the latest changes and updates.
+### v1.0.5 (Latest)
+- Fixed build issues by replacing problematic dependencies
+- Updated GitHub workflow for proper artifact naming
+- Added support for both x64 and ARM64 builds
+- Fixed NuGet package references for better compatibility
+- Enhanced README with additional badges and information
+
+See the [Releases](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases) page for all changes and updates.
 
 ---
 
