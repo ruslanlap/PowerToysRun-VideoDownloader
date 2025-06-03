@@ -4,50 +4,11 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.DependencyInjection;
-using YoutubeExplode;
-using System.IO.Abstractions;
+using ManagedCommon;
+using Wox.Plugin;
 
 namespace Community.PowerToys.Run.Plugin.VideoDownloader
 {
-    // Define our own interfaces to replace Wox.Plugin
-    public interface IPlugin
-    {
-        string Name { get; }
-        string Description { get; }
-        void Init(PluginInitContext context);
-        List<Result> Query(Query query);
-    }
-
-    public interface IReloadable
-    {
-        void ReloadData();
-    }
-
-    public class PluginInitContext
-    {
-        public string CurrentPluginMetadata { get; set; }
-        public Action<string, object> API { get; set; }
-    }
-
-    public class Query
-    {
-        public string Search { get; set; }
-        public Query(string search)
-        {
-            Search = search;
-        }
-    }
-
-    public class Result
-    {
-        public string Title { get; set; }
-        public string SubTitle { get; set; }
-        public string IconPath { get; set; }
-        public Action Action { get; set; }
-    }
-
     public class Main : IPlugin, IReloadable, IDisposable
     {
         public static string PluginID => "B8F9B9F5C3E44A8B9F1F2E3D4C5B6A7B";
@@ -58,8 +19,6 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         private string _iconPathDark;
         private string _iconPathLight;
         private bool _disposed;
-        private readonly ILogger<Main> _logger;
-        private readonly YoutubeClient _youtubeClient;
 
         // Settings
         private string _downloadPath = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);
@@ -76,7 +35,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                 results.Add(new Result
                 {
                     Title = "📥 Setup Video Downloader",
-                    SubTitle = "First-time setup: Download yt-dlp.exe",
+                    SubTitle = "First-time setup: Download yt-dlp.exe (automatic, no Python needed)",
                     IcoPath = GetIconPath(),
                     Action = context =>
                     {
@@ -110,7 +69,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                 results.Add(new Result
                 {
-                    Title = "📁  Open Download Folder",
+                    Title = "📁 Open Download Folder",
                     SubTitle = $"Current: {_downloadPath}",
                     IcoPath = GetIconPath(),
                     Action = context =>
@@ -122,7 +81,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                 results.Add(new Result
                 {
-                    Title = "⚙️  Change Download Folder",
+                    Title = "⚙️ Change Download Folder",
                     SubTitle = "Click to select a new download location",
                     IcoPath = GetIconPath(),
                     Action = context =>
@@ -142,7 +101,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             {
                 results.Add(new Result
                 {
-                    Title = $"🎥  Download Video: {GetDomainFromUrl(searchTerms)}",
+                    Title = $"🎥 Download Video: {GetDomainFromUrl(searchTerms)}",
                     SubTitle = $"Download to: {_downloadPath} | Format: {_videoFormat}",
                     IcoPath = GetIconPath(),
                     Action = context =>
@@ -154,7 +113,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                 results.Add(new Result
                 {
-                    Title = "🎵  Download Audio Only",
+                    Title = "🎵 Download Audio Only",
                     SubTitle = $"Extract audio to: {_downloadPath} | Format: {_audioFormat}",
                     IcoPath = GetIconPath(),
                     Action = context =>
@@ -166,7 +125,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                 results.Add(new Result
                 {
-                    Title = "📥  Download & Open Folder",
+                    Title = "📥 Download & Open Folder",
                     SubTitle = $"Download video and open {_downloadPath}",
                     IcoPath = GetIconPath(),
                     Action = context =>
@@ -178,7 +137,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                 results.Add(new Result
                 {
-                    Title = "🎧  Download Audio & Open Folder", 
+                    Title = "🎧 Download Audio & Open Folder", 
                     SubTitle = $"Download audio and open {_downloadPath}",
                     IcoPath = GetIconPath(),
                     Action = context =>
@@ -190,7 +149,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                 results.Add(new Result
                 {
-                    Title = "⚙️  Choose Quality",
+                    Title = "⚙️ Choose Quality",
                     SubTitle = "Select video quality before download",
                     IcoPath = GetIconPath(),
                     Action = context =>
@@ -202,7 +161,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                 results.Add(new Result
                 {
-                    Title = "📁  Open Download Folder",
+                    Title = "📁 Open Download Folder",
                     SubTitle = $"Open {_downloadPath}",
                     IcoPath = GetIconPath(),
                     Action = context =>
@@ -216,7 +175,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             {
                 results.Add(new Result
                 {
-                    Title = "❌  Invalid URL",
+                    Title = "❌ Invalid URL",
                     SubTitle = "Please provide a valid video URL (YouTube, Vimeo, etc.)",
                     IcoPath = GetIconPath(),
                     Action = context => false
@@ -277,7 +236,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     var startInfo = new ProcessStartInfo
                     {
                         FileName = "cmd.exe",
-                        Arguments = $"/c echo Setting up Video Downloader... && echo. && echo Downloading yt-dlp.exe... && powershell -WindowStyle Normal -Command \"" +
+                        Arguments = $"/c echo Setting up Video Downloader... && echo. && echo Downloading yt-dlp.exe (no Python needed)... && powershell -WindowStyle Normal -Command \"" +
                                    $"try {{ " +
                                    $"Write-Host 'Downloading from GitHub...' -ForegroundColor Green; " +
                                    $"Invoke-WebRequest -Uri 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' -OutFile '{escapedPath}' -UseBasicParsing; " +
