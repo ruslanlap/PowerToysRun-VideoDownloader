@@ -4,11 +4,50 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using ManagedCommon;
-using Wox.Plugin;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using YoutubeExplode;
+using System.IO.Abstractions;
 
 namespace Community.PowerToys.Run.Plugin.VideoDownloader
 {
+    // Define our own interfaces to replace Wox.Plugin
+    public interface IPlugin
+    {
+        string Name { get; }
+        string Description { get; }
+        void Init(PluginInitContext context);
+        List<Result> Query(Query query);
+    }
+
+    public interface IReloadable
+    {
+        void ReloadData();
+    }
+
+    public class PluginInitContext
+    {
+        public string CurrentPluginMetadata { get; set; }
+        public Action<string, object> API { get; set; }
+    }
+
+    public class Query
+    {
+        public string Search { get; set; }
+        public Query(string search)
+        {
+            Search = search;
+        }
+    }
+
+    public class Result
+    {
+        public string Title { get; set; }
+        public string SubTitle { get; set; }
+        public string IconPath { get; set; }
+        public Action Action { get; set; }
+    }
+
     public class Main : IPlugin, IReloadable, IDisposable
     {
         public static string PluginID => "B8F9B9F5C3E44A8B9F1F2E3D4C5B6A7B";
@@ -19,6 +58,8 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         private string _iconPathDark;
         private string _iconPathLight;
         private bool _disposed;
+        private readonly ILogger<Main> _logger;
+        private readonly YoutubeClient _youtubeClient;
 
         // Settings
         private string _downloadPath = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos);

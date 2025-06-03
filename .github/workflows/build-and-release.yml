@@ -35,13 +35,16 @@ jobs:
         with:
           dotnet-version: '9.0.x'
       
+      - name: Clear NuGet cache
+        run: dotnet nuget locals all --clear
+        
       - name: Add NuGet Sources
         run: |
-          dotnet nuget add source https://api.nuget.org/v3/index.json --name nuget.org
+          dotnet nuget add source https://api.nuget.org/v3/index.json --name nuget.org --configfile NuGet.Config
           dotnet nuget list source
       
-      - name: Restore dependencies
-        run: dotnet restore VideoDownloader/VideoDownloader.sln
+      - name: Restore dependencies with verbose logging
+        run: dotnet restore VideoDownloader/VideoDownloader.sln --verbosity detailed
       
       - name: Build
         run: dotnet build VideoDownloader/VideoDownloader.sln -c Release -p:Platform="${{ matrix.platform }}" --no-restore
