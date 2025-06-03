@@ -6,7 +6,7 @@
   </a>
   <p><small>Latest version: v1.0.5 (x64 & ARM64) | 
     <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest">Other versions</a>
-    <img src="assets/demo-videodownloader.gif" width="24" height="24" style="vertical-align: middle; margin-left: 5px; border-radius: 3px;" alt="Demo">
+    <img src="assets/demo-videodownloader.gif" width="800" style="vertical-align: middle; margin-left: 5px; border-radius: 3px;" alt="Demo">
   </small></p>
 </div>
 
