@@ -184,12 +184,15 @@ jobs:
       - name: Rename release artifacts for convention
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
-          mv release-artifacts/VideoDownloader-x64.zip release-artifacts/VideoDownloader-${VERSION}-x64.zip
-          mv release-artifacts/VideoDownloader-ARM64.zip release-artifacts/VideoDownloader-${VERSION}-ARM64.zip
+          mv release-artifacts/VideoDownloader-x64.zip release-artifacts/VideoDownloader-v${VERSION}-x64.zip
+          mv release-artifacts/VideoDownloader-ARM64.zip release-artifacts/VideoDownloader-v${VERSION}-arm64.zip
       
       - name: Get version from tag
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Using version: ${VERSION}"
       
       - name: Prepare Release Notes
         id: release_notes
@@ -198,7 +201,7 @@ jobs:
           cat > release_notes.md << EOL
           # VideoDownloader Plugin v${VERSION}
 
-          ![VideoDownloader Plugin Logo](https://raw.githubusercontent.com/ruslanlap/PowerToysRun-VideoDownloader/master/assets/logo.png)
+          ![VideoDownloader Plugin Logo](https://raw.githubusercontent.com/ruslanlap/PowerToysRun-VideoDownloader/main/assets/logo.png)
 
           ## What's New
 
@@ -231,8 +234,8 @@ jobs:
       - name: Generate SHA256 checksums
         run: |
           cd release-artifacts
-          sha256sum VideoDownloader-${VERSION}-x64.zip > VideoDownloader-${VERSION}-x64.zip.sha256
-          sha256sum VideoDownloader-${VERSION}-ARM64.zip > VideoDownloader-${VERSION}-ARM64.zip.sha256
+          sha256sum VideoDownloader-v${VERSION}-x64.zip > VideoDownloader-v${VERSION}-x64.zip.sha256
+          sha256sum VideoDownloader-v${VERSION}-arm64.zip > VideoDownloader-v${VERSION}-arm64.zip.sha256
       
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -242,9 +245,9 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            release-artifacts/VideoDownloader-${VERSION}-x64.zip
-            release-artifacts/VideoDownloader-${VERSION}-ARM64.zip
-            release-artifacts/VideoDownloader-${VERSION}-x64.zip.sha256
-            release-artifacts/VideoDownloader-${VERSION}-ARM64.zip.sha256
+            release-artifacts/VideoDownloader-v${VERSION}-x64.zip
+            release-artifacts/VideoDownloader-v${VERSION}-arm64.zip
+            release-artifacts/VideoDownloader-v${VERSION}-x64.zip.sha256
+            release-artifacts/VideoDownloader-v${VERSION}-arm64.zip.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
