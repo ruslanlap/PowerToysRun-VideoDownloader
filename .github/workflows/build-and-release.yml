@@ -194,7 +194,8 @@ jobs:
       - name: Prepare Release Notes
         id: release_notes
         run: |
-          cat > release_notes.md << 'EOL'
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          cat > release_notes.md << EOL
           # VideoDownloader Plugin v${VERSION}
 
           ![VideoDownloader Plugin Logo](https://raw.githubusercontent.com/ruslanlap/PowerToysRun-VideoDownloader/master/assets/logo.png)
