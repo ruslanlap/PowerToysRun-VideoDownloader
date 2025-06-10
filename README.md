@@ -86,7 +86,7 @@
 
 **VideoDownloader** is a PowerToys Run plugin that lets you download videos from the internet instantly from your keyboard. Just type `dl [URL]` in PowerToys Run (replace `[URL]` with the video URL) and start the download, no browser required!
 
-- **Plugin ID:** `5A0F7ED1D3F24B0A900732839D0E43DB`
+- **Plugin ID:** `B8F9B9F5C3E44A8B9F1F2E3D4C5B6A7B`
 - **Action Keyword:** `dl`
 - **Platform:** Windows 10/11 (x64, ARM64)
 - **Tech:** C#/.NET, WPF, PowerToys Run API
@@ -416,11 +416,21 @@ MIT License. See [LICENSE](LICENSE).
 ## 📝 Changelog
 
 ### v1.0.5 (Latest)
-- Fixed build issues by replacing problematic dependencies
-- Updated GitHub workflow for proper artifact naming
-- Added support for both x64 and ARM64 builds
-- Fixed NuGet package references for better compatibility
-- Enhanced README with additional badges and information
+- Fixed build issues by replacing problematic `Community.PowerToys.Run.Plugin.Dependencies` package with standard PowerToys dependencies:
+  - Added `Microsoft.PowerToys.Settings.UI.Library` (v0.75.0)
+  - Added `Wox.Plugin` (v1.4.0)
+- Updated GitHub Actions workflow for proper artifact naming and build process:
+  - Fixed all references from "SpeedTest" to "VideoDownloader"
+  - Corrected project paths and build directories
+  - Added explicit NuGet source configuration
+  - Added dedicated restore step before building
+- Added proper support for both x64 and ARM64 builds
+- Fixed NuGet package references for better compatibility with PowerToys v0.75+
+- Enhanced README with additional badges, better documentation, and improved formatting
+- Updated UnitTests project to target .NET 9.0 to match the main project
+- Fixed all links and references to ensure consistency across the project
+
+Special thanks to [Cascade](https://github.com/cascade) for contributions to the documentation and build process improvements!
 
 See the [Releases](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases) page for all changes and updates.
 
