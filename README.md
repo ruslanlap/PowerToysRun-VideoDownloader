@@ -70,6 +70,27 @@
 
 ---
 
+## 📋 Table of Contents
+- [📝 Overview](#-overview)
+- [✨ Features](#-features)
+- [⚡ Quick Start](#-quick-start)
+- [⚙️ Configuration](#️-configuration)
+- [🛠️ Building from Source](#️-building-from-source)
+- [🤝 Contributing](#-contributing)
+- [❓ FAQ](#-faq)
+- [📄 License](#-license)
+- [🙏 Acknowledgements](#-acknowledgements)
+- [🛠️ Troubleshooting](#-troubleshooting)
+
+## 📝 Overview
+
+**VideoDownloader** is a PowerToys Run plugin that lets you download videos from the internet instantly from your keyboard. Just type `dl [URL]` in PowerToys Run (replace `[URL]` with the video URL) and start the download, no browser required!
+
+- **Plugin ID:** `5A0F7ED1D3F24B0A900732839D0E43DB`
+- **Action Keyword:** `dl`
+- **Platform:** Windows 10/11 (x64, ARM64)
+- **Tech:** C#/.NET, WPF, PowerToys Run API
+
 ## 🌟 Features
 
 - 🚀 **One-Click Downloads** - Download videos with a single command
@@ -155,7 +176,7 @@ The built plugin will be in `bin\Release\net9.0-windows10.0.22621.0`
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting a pull request.
+Contributions are welcome! Please submit a [pull request](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/pulls) to suggest changes.
 
 ## 📄 License
 
@@ -207,19 +228,6 @@ If you encounter any issues, please [open an issue](https://github.com/ruslanlap
   
   <p>All assets are available in the <code>assets/</code> directory of this repository.</p>
 </div>
-
-## 📋 Table of Contents
-- [📝 Overview](#-overview)
-- [✨ Features](#-features)
-- [⚡ Quick Start](#-quick-start)
-- [🚀 Usage](#-usage)
-- [⚙️ Configuration](#️-configuration)
-- [🛠️ Building from Source](#️-building-from-source)
-- [🤝 Contributing](#-contributing)
-- [❓ FAQ](#-faq)
-- [📄 License](#-license)
-- [🙏 Acknowledgements](#-acknowledgements)
-- [🛠️ Troubleshooting](#-troubleshooting)
 
 ---
 
@@ -280,9 +288,6 @@ VideoDownloader/
 ├── screenshots/                                    # Demo and documentation assets
 └── .github/workflows/                              # CI/CD workflows
 ```
-
-## 🤝 Contributing
-Contributions are welcome! Please read our [Code of Conduct](CODE_OF_CONDUCT.md) and [Contributing Guide](CONTRIBUTING.md) before submitting a pull request.
 
 ### Contributors
 - [ruslanlap](https://github.com/ruslanlap) - Project creator and maintainer
