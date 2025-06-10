@@ -70,6 +70,27 @@
 
 ---
 
+## 📋 Table of Contents
+- [📝 Overview](#-overview)
+- [✨ Features](#-features)
+- [⚡ Quick Start](#-quick-start)
+- [⚙️ Configuration](#️-configuration)
+- [🛠️ Building from Source](#️-building-from-source)
+- [🤝 Contributing](#-contributing)
+- [❓ FAQ](#-faq)
+- [📄 License](#-license)
+- [🙏 Acknowledgements](#-acknowledgements)
+- [🛠️ Troubleshooting](#-troubleshooting)
+
+## 📝 Overview
+
+**VideoDownloader** is a PowerToys Run plugin that lets you download videos from the internet instantly from your keyboard. Just type `dl [URL]` in PowerToys Run (replace `[URL]` with the video URL) and start the download, no browser required!
+
+- **Plugin ID:** `5A0F7ED1D3F24B0A900732839D0E43DB`
+- **Action Keyword:** `dl`
+- **Platform:** Windows 10/11 (x64, ARM64)
+- **Tech:** C#/.NET, WPF, PowerToys Run API
+
 ## 🌟 Features
 
 - 🚀 **One-Click Downloads** - Download videos with a single command
@@ -155,7 +176,7 @@ The built plugin will be in `bin\Release\net9.0-windows10.0.22621.0`
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guidelines](CONTRIBUTING.md) before submitting a pull request.
+Contributions are welcome! Please submit a [pull request](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/pulls) to suggest changes.
 
 ## 📄 License
 
@@ -208,58 +229,7 @@ If you encounter any issues, please [open an issue](https://github.com/ruslanlap
   <p>All assets are available in the <code>assets/</code> directory of this repository.</p>
 </div>
 
-## 📋 Table of Contents
-- [📝 Overview](#-overview)
-- [✨ Features](#-features)
-- [⚡ Quick Start](#-quick-start)
-- [🚀 Usage](#-usage)
-- [⚙️ Configuration](#️-configuration)
-- [🛠️ Building from Source](#️-building-from-source)
-- [🤝 Contributing](#-contributing)
-- [❓ FAQ](#-faq)
-- [📄 License](#-license)
-- [🙏 Acknowledgements](#-acknowledgements)
-- [🛠️ Troubleshooting](#-troubleshooting)
-
 ---
-
-## 📝 Overview
-
-**SpeedTest** is a PowerToys Run plugin that lets you check your internet speed instantly from your keyboard. Just type `spt` in PowerToys Run and launch a test—no browser required!
-
-- **Plugin ID:** `5A0F7ED1D3F24B0A900732839D0E43DB`
-- **Action Keyword:** `spt` or change to `speedtest`
-- **Platform:** Windows 10/11 (x64, ARM64)
-- **Tech:** C#/.NET, WPF, PowerToys Run API
-
-## ✨ Features
-- ⚡ One-command internet speed test from PowerToys Run
-- 📊 Shows download, upload, ping, server info, and shareable result URL
-- 🖼️ Modern WPF UI with real-time progress and results
-- 🎨 Theme-aware (dark/light icons, adapts to system theme)
-- 📝 Copy/share results instantly
-- 🛠️ Robust error handling and informative messages
-- 🧪 Automated tests and CI/CD (GitHub Actions)
-
-## 🎬 Demo
-<div align="center">
-  <img src="SpeedTest/data/demo1.png" width="350" alt="Demo 1">
-  <img src="SpeedTest/data/demo2.png" width="350" alt="Demo 2">
-  <img src="SpeedTest/data/demo3.png" width="350" alt="Demo 3">
-</div>
-
-## ⚡ Easy Install
-1. [Download the release (x64)](https://github.com/ruslanlap/PowerToysRun-SpeedTest/releases/download/v1.0.2/SpeedTest-1.0.2-x64.zip)
-2. [Download the release (ARM64)](https://github.com/ruslanlap/PowerToysRun-SpeedTest/releases/download/v1.0.2/SpeedTest-1.0.2-ARM64.zip)
-3. Extract to `%LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\`
-4. Restart PowerToys
-5. Press `Alt+Space`, type `spt`, and hit Enter! (or change to `speedtest` or any other keyword in the settings)
-
-## 🚀 Usage     
-- Open PowerToys Run (`Alt+Space`)    
-- Type `spt` and select `Run Speed Test`
-- View real-time progress and detailed results
-- Click the result URL to view/share your result online
 
 ## 🖼️ Demo & Screenshots
 
@@ -280,9 +250,6 @@ VideoDownloader/
 ├── screenshots/                                    # Demo and documentation assets
 └── .github/workflows/                              # CI/CD workflows
 ```
-
-## 🤝 Contributing
-Contributions are welcome! Please read our [Code of Conduct](CODE_OF_CONDUCT.md) and [Contributing Guide](CONTRIBUTING.md) before submitting a pull request.
 
 ### Contributors
 - [ruslanlap](https://github.com/ruslanlap) - Project creator and maintainer
