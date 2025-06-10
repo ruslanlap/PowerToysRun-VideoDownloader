@@ -119,7 +119,7 @@
 
 ## 🎬 Demo
 
-![Demo](https://raw.githubusercontent.com/ruslanlap/PowerToysRun-VideoDownloader/main/demo.gif)
+![Demo](assets/demo-videodownloader.gif)
 
 ## 📚 Usage
 
@@ -289,8 +289,10 @@ VideoDownloader/
 └── .github/workflows/                              # CI/CD workflows
 ```
 
-### Contributors
-- [ruslanlap](https://github.com/ruslanlap) - Project creator and maintainer
+## 👥 Contributors
+
+Thank you to all the amazing people who have contributed to this project and create issues for bug reports and feature requests!
+
 
 ## ❓ FAQ
 <details>
@@ -430,9 +432,6 @@ MIT License. See [LICENSE](LICENSE).
 - Updated UnitTests project to target .NET 9.0 to match the main project
 - Fixed all links and references to ensure consistency across the project
 
-Special thanks to [Cascade](https://github.com/cascade) for contributions to the documentation and build process improvements!
-
-See the [Releases](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases) page for all changes and updates.
 
 ---
 
