@@ -231,6 +231,44 @@ If you encounter any issues, please [open an issue](https://github.com/ruslanlap
 
 ---
 
+## 📝 Overview
+
+**VideoDownloader** is a PowerToys Run plugin that lets you download videos from YouTube and 1000+ other sites instantly from your keyboard. Just type `dl` followed by a video URL in PowerToys Run to start downloading—no browser required!
+
+- **Plugin ID:** `9B6621426ABD46EC9C8B30F165866711`
+- **Action Keyword:** `dl`
+- **Platform:** Windows 10/11 (x64, ARM64)
+- **Tech:** C#/.NET, WPF, PowerToys Run API
+
+## ✨ Features
+- ⚡ One-command video downloads from PowerToys Run
+- 📊 Supports YouTube and 1000+ other video sites
+- 🖼️ Modern WPF UI with real-time progress and results
+- 🎨 Theme-aware (dark/light icons, adapts to system theme)
+- 📝 Copy/share results instantly
+- 🛠️ Robust error handling and informative messages
+- 🧪 Automated tests and CI/CD (GitHub Actions)
+
+## 🎬 Demo
+<div align="center">
+  <img src="assets/demo1.png" width="350" alt="Demo 1">
+  <img src="assets/demo2.png" width="350" alt="Demo 2">
+  <img src="assets/demo3.png" width="350" alt="Demo 3">
+</div>
+
+## ⚡ Easy Install
+1. [Download the release (x64)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-v1.0.5-x64.zip)
+2. [Download the release (ARM64)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-v1.0.5-arm64.zip)
+3. Extract to `%LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\`
+4. Restart PowerToys
+5. Press `Alt+Space`, type `dl` followed by a video URL, and hit Enter!
+
+## 🚀 Usage     
+- Open PowerToys Run (`Alt+Space`)    
+- Type `dl` followed by a video URL and select the download option
+- View real-time progress and detailed results
+- Click the result URL to view/share your result online
+
 ## 🖼️ Demo & Screenshots
 
 ![Video Downloader in Action](screenshots/demo.gif)

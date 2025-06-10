@@ -165,7 +165,9 @@ jobs:
           cat > release_notes.md << 'EOL'
           # 📝 VideoDownloader v${{ steps.get_version.outputs.VERSION }}
           
-          ![VideoDownloader Logo](https://raw.githubusercontent.com/ruslanlap/CommunityPowerToysRunPlugin-VideoDownloader/master/VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/Images/VideoDownloader.dark.png)
+          <p align="center">
+            <img src="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/blob/master/assets/logo.png" width="128px" alt="VideoDownloader Logo" />
+          </p>
           
           ## ✨ What's New
           
@@ -176,19 +178,19 @@ jobs:
           
           ## 📥 Installation
           
-          1. Download the ZIP file for your platform (x64 or ARM64)
-          2. Extract to `%LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\`
-          3. Restart PowerToys
+          1. Download the ZIP file for your platform (x64 or ARM64)  
+          2. Extract to `%LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\`  
+          3. Restart PowerToys  
           4. Start using with `Alt+Space` then type `dl <URL>`
           
           ## 🔍 Quick Commands
           
-          | Command | Description |
-          |---------|-------------|
-          | `dl <URL>` | Download a video in the best quality |
-          | `dl --audio <URL>` | Download audio only |
-          | `dl --quality <quality> <URL>` | Download with specific quality |
-          | `dl --list-formats <URL>` | Show available formats |
+          | Command                     | Description                         |
+          |-----------------------------|-------------------------------------|
+          | `dl <URL>`                  | Download a video in the best quality |
+          | `dl --audio <URL>`          | Download audio only                  |
+          | `dl --quality <quality> <URL>` | Download with specific quality      |
+          | `dl --list-formats <URL>`   | Show available formats               |
           
           ## 🙏 Thank You
           
