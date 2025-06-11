@@ -134,12 +134,10 @@
 
 ## 🎬 Demo
 
----
-
 <div align="center">
-  <a href="assets/demo1.png">Demo 1</a>
-  <a href="assets/demo2.png">Demo 2</a>
-  <a href="assets/demo3.png">Demo 3</a>
+  <a href="assets/demo1.png"><img src="assets/demo1.png" width="250" alt="Demo 1"></a>
+  <a href="assets/demo2.png"><img src="assets/demo2.png" width="250" alt="Demo 2"></a>
+  <a href="assets/demo3.png"><img src="assets/demo3.png" width="250" alt="Demo 3"></a>
 </div>
 
 ## 📚 Usage
