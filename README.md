@@ -143,8 +143,6 @@
     <h3>Basic Commands</h3>
     <ul>
       <li><code>dl [URL]</code> - Download a video in the best quality</li>
-      <li><code>dl --audio [URL]</code> - Download audio only (MP3)</li>
-      <li><code>dl --quality [quality] [URL]</code> - Download with specific quality (e.g., <code>--quality 720p</code>)</li>
       <li><code>dl --list-formats [URL]</code> - Show available formats</li>
     </ul>
   </div>
@@ -157,8 +155,7 @@
 
 ```
 dl https://www.youtube.com/watch?v=dQw4w9WgXcQ
-dl --audio https://www.youtube.com/watch?v=dQw4w9WgXcQ
-dl --quality 1080p https://www.youtube.com/watch?v=dQw4w9WgXcQ
+
 ```
 
 ## ⚙️ Configuration

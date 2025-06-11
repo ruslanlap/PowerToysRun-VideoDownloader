@@ -37,9 +37,7 @@ This release focuses on improving the user experience and fixing several critica
 | Command | Description |
 |---------|-------------|
 | `dl <URL>` | Download a video in the best quality |
-| `dl --audio <URL>` | Download audio only |
-| `dl --quality <quality> <URL>` | Download with specific quality |
-| `dl --list-formats <URL>` | Show available formats |
+
 
 ### ⚠️ Important Notes
 - This project is created for educational purposes only
