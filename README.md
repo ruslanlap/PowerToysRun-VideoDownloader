@@ -28,7 +28,7 @@
 
 <div align="center">
 <p align="center">
-  <img src="assets/logo.png" width="428" alt="Plugin Logo" alt="logo">
+  <img src="assets/logo.png" width="200" alt="Plugin Logo" alt="logo">
 </p>
   <h1>📥 Video Downloader for PowerToys Run</h1>
   <h3>Download videos from YouTube and 1000+ other sites directly from your keyboard</h3>
@@ -284,9 +284,6 @@ If you encounter any issues, please [open an issue](https://github.com/ruslanlap
 - View real-time progress and detailed results
 - Click the result URL to view/share your result online
 
-## 🖼️ Demo & Screenshots
-
-![Video Downloader in Action](screenshots/demo.gif)
 
 ## 🛠️ Building from Source
 - Requires .NET 9.0 SDK and Windows 10/11
