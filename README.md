@@ -87,8 +87,10 @@
 
 ## 📋 Table of Contents
 - [📝 Overview](#-overview)
-- [✨ Features](#-features)
+- [🌟 Features](#-features)
 - [⚡ Quick Start](#-quick-start)
+- [🎬 Demo](#-demo)
+- [📚 Usage](#-usage)
 - [⚙️ Configuration](#️-configuration)
 - [🛠️ Building from Source](#️-building-from-source)
 - [🤝 Contributing](#-contributing)
