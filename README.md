@@ -18,14 +18,9 @@
   <img src="https://img.shields.io/github/downloads/ruslanlap/PowerToysRun-VideoDownloader/latest/total?style=for-the-badge&label=Latest%20Release" alt="Latest Release Downloads">
 </div>
 
-<div align="center">
-  <img src="https://repobeats.axiom.co/api/embed/your-repobeats-hash.svg" alt="Repobeats analytics image" width="800">
-</div>
 
-<div align="center">
-  <img src="https://img.shields.io/github/downloads/ruslanlap/PowerToysRun-VideoDownloader/v1.0.6/VideoDownloader-v1.0.6-x64.zip?style=flat-square&label=x64" alt="x64 Downloads">
-  <img src="https://img.shields.io/github/downloads/ruslanlap/PowerToysRun-VideoDownloader/v1.0.6/VideoDownloader-v1.0.6-arm64.zip?style=flat-square&label=ARM64" alt="ARM64 Downloads">
-</div>
+
+
 
 > ⚠️ **Warning:** This project is created for educational purposes only. Use of this software for downloading videos is at your own risk and responsibility. Please respect copyright laws and terms of service of the platforms you download from.
 
