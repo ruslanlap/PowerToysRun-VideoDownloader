@@ -143,7 +143,6 @@
     <h3>Basic Commands</h3>
     <ul>
       <li><code>dl [URL]</code> - Download a video in the best quality</li>
-      <li><code>dl --list-formats [URL]</code> - Show available formats</li>
     </ul>
   </div>
   <div style="flex: 1; text-align: center;">
@@ -358,7 +357,7 @@ Thank you to all the amazing people who have contributed to this project and cre
 
 <details>
 <summary><b>Can I download audio-only files?</b></summary>
-<p>Yes, use the <code>--audio</code> flag to download audio-only files in MP3 format. For example: <code>dl --audio [URL]</code></p>
+<p>Yes, use the <code>--audio</code> flag to download audio-only files in MP3 format.]</code></p>
 </details>
 
 <details>
