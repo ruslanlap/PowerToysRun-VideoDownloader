@@ -1,10 +1,10 @@
 # 🎥 PowerToys Run: Video Downloader
 
 <div align="center">
-  <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/download/v1.0.6/VideoDownloader-v1.0.6-x64.zip" download style="display: inline-block; margin: 1rem 0;">
+  <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/download/v1.0.7/VideoDownloader-v1.0.7-x64.zip" download style="display: inline-block; margin: 1rem 0;">
     <img src="https://img.shields.io/badge/Download_Now-2088FF?style=for-the-badge&logo=github&logoColor=white&labelColor=24292f" alt="Download Now">
   </a>
-  <p><small>Latest version: v1.0.6 (x64 & ARM64) | 
+  <p><small>Latest version: v1.0.7 (x64 & ARM64) | 
     <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest">Other versions</a> | 
     <a href="VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/CHANGELOG.md">Changelog</a>
     <img src="assets/demo-videodownloader.gif" width="800" style="vertical-align: middle; margin-left: 5px; border-radius: 3px;" alt="Demo">
