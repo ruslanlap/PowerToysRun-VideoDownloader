@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Controls;
+using System.Windows;
 using ManagedCommon;
 using Wox.Plugin;
 using System.Text.Json;
@@ -90,7 +91,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                 var qualityOptions = new[] { "1080p", "720p", "480p", "360p", "best" };
                 foreach (var quality in qualityOptions.Where(q => q != _settings.DefaultVideoQuality))
                 {
-                    results.Add(new Result { Title = $"🎬 Download in {quality} quality", SubTitle = "Folder will open automatically", IcoPath = _iconPath, Action = _ => { DownloadWithQuality(search, quality); return true; } });
+                    results.Add(new Result { Title = $"📋 Available Formats", SubTitle = "Show available video formats and qualities", IcoPath = _iconPath, Action = _ => { ShowVideoInfo(search); return true; } });
                 }
 
                 // Add video info option
@@ -277,10 +278,12 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     var output = RunYtDlpCommandWithOutput(command);
                     if (!string.IsNullOrEmpty(output))
                     {
-                        // Show info in a more user-friendly way
-                        var lines = output.Split('\n').Take(20).ToArray();
-                        var info = string.Join("\n", lines);
-                        _context.API.ShowMsg("ℹ️ Video Information", $"Available formats:\n{info}", _iconPath);
+                        var info = output.TrimEnd();
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            var window = new VideoInfoWindow(info);
+                            window.Show();
+                        });
                     }
                 }
                 catch (Exception e)

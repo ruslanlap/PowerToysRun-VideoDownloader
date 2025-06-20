@@ -431,7 +431,19 @@ MIT License. See [LICENSE](LICENSE).
 
 ## 📝 Changelog
 
-### v1.0.5 (Latest)
+### v1.0.7 (Latest)
+- **New Feature**: Added support for viewing available video formats before downloading
+  - Click on "ℹ️ Video Information" to see all available formats and qualities
+  - View detailed information about each available stream
+  - Choose the exact format/quality you want to download
+
+### v1.0.6
+- Added support for ARM64 architecture
+- Improved plugin settings validation
+- Fixed issues with special characters in download paths
+- Added more detailed error messages for download failures
+
+### v1.0.5
 - Fixed build issues by replacing problematic `Community.PowerToys.Run.Plugin.Dependencies` package with standard PowerToys dependencies:
   - Added `Microsoft.PowerToys.Settings.UI.Library` (v0.75.0)
   - Added `Wox.Plugin` (v1.4.0)
@@ -486,6 +498,14 @@ MIT License. See [LICENSE](LICENSE).
   <figure>
     <img src="assets/demo-videodownloader3.gif" width="800" alt="Advanced features">
     <figcaption>Using advanced features: opening download folder and changing download location</figcaption>
+  </figure>
+</div>
+
+### Available Video Formats
+<div align="center">
+  <figure>
+    <img src="assets/Available Video Formats.png" width="800" alt="Available Video Formats">
+    <figcaption>View all available video formats and qualities before downloading</figcaption>
   </figure>
 </div>
 
