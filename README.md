@@ -1,10 +1,10 @@
 # 🎥 PowerToys Run: Video Downloader
 
 <div align="center">
-  <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/download/v1.0.7/VideoDownloader-v1.0.7-x64.zip" download style="display: inline-block; margin: 1rem 0;">
+  <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/download/v1.0.8/VideoDownloader-v1.0.8-x64.zip" download style="display: inline-block; margin: 1rem 0;">
     <img src="https://img.shields.io/badge/Download_Now-2088FF?style=for-the-badge&logo=github&logoColor=white&labelColor=24292f" alt="Download Now">
   </a>
-  <p><small>Latest version: v1.0.7 (x64 & ARM64) | 
+  <p><small>Latest version: v1.0.8 (x64 & ARM64) | 
     <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest">Other versions</a> | 
     <a href="VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/CHANGELOG.md">Changelog</a>
     <img src="assets/demo-videodownloader.gif" width="800" style="vertical-align: middle; margin-left: 5px; border-radius: 3px;" alt="Demo">
@@ -41,7 +41,7 @@
     <img src="https://img.shields.io/github/v/release/ruslanlap/PowerToysRun-VideoDownloader?label=latest&style=flat-square" alt="Latest Release">
   </a>
   <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest">
-    <img src="https://img.shields.io/badge/version-v1.0.6-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.0.8-blue?style=flat-square" alt="Version">
   </a>
   <img src="https://img.shields.io/maintenance/yes/2025?style=flat-square" alt="Maintenance">
   <img src="https://img.shields.io/badge/C%23-.NET%209-512BD4?style=flat-square" alt="C# .NET 9">
@@ -274,8 +274,8 @@ If you encounter any issues, please [open an issue](https://github.com/ruslanlap
 </div>
 
 ## 🔔 Easy Install
-1. [Download the release (x64)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-v1.0.6-x64.zip)
-2. [Download the release (ARM64)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-v1.0.6-arm64.zip)
+1. [Download the release (x64)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-v1.0.8-x64.zip)
+2. [Download the release (ARM64)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-v1.0.8-arm64.zip)
 3. Extract to `%LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\`
 4. Restart PowerToys
 5. Press `Alt+Space`, type `dl` followed by a video URL, and hit Enter!
@@ -431,7 +431,14 @@ MIT License. See [LICENSE](LICENSE).
 
 ## 📝 Changelog
 
-### v1.0.7 (Latest)
+### v1.0.8 (Latest)
+- **🐛 Bug Fix**: Fixed Setup Timeout Issue
+  - Increased HttpClient timeout from 100 seconds to 10 minutes for ffmpeg download
+  - Added proper user messaging about download duration  
+  - Fixes the "request was canceled due to timeout" error during setup
+  - Users with slower internet connections can now complete setup successfully
+
+### v1.0.7
 - **New Feature**: Added support for viewing available video formats before downloading
   - Click on "ℹ️ Video Information" to see all available formats and qualities
   - View detailed information about each available stream
