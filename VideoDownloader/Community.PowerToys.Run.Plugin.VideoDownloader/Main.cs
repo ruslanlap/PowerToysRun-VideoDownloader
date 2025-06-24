@@ -130,10 +130,14 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                 if (!File.Exists(ffmpegPath))
                 {
-                    _context.API.ShowMsg("Setup: Step 2/4", "Downloading ffmpeg archive...", _iconPath);
+                    _context.API.ShowMsg("Setup: Step 2/4", "Downloading ffmpeg archive (this may take several minutes)...", _iconPath);
                     var ffmpegUrl = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip";
                     var ffmpegZipPath = Path.Combine(pluginDir, "ffmpeg.zip");
-                    var ffmpegBytes = await _httpClient.GetByteArrayAsync(ffmpegUrl);
+                    
+                    // Create HttpClient with longer timeout for large downloads
+                    using var downloadClient = new HttpClient();
+                    downloadClient.Timeout = TimeSpan.FromMinutes(10); // 10 minutes timeout
+                    var ffmpegBytes = await downloadClient.GetByteArrayAsync(ffmpegUrl);
                     await File.WriteAllBytesAsync(ffmpegZipPath, ffmpegBytes);
 
                     _context.API.ShowMsg("Setup: Step 3/4", "Extracting ffmpeg...", _iconPath);
