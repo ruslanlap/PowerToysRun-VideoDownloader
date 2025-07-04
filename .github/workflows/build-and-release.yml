@@ -280,7 +280,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          name: PowerToysRun-VideoDownloader v${{ steps.get_version.outputs.VERSION }}
+          name: VideoDownloader v${{ steps.get_version.outputs.VERSION }}
           body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
           draft: false
           prerelease: false
