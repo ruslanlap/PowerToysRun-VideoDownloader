@@ -212,36 +212,52 @@ jobs:
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
           cat > release_notes.md << EOL
-          # VideoDownloader Plugin v${VERSION}
+          # 📥 VideoDownloader v${VERSION}
+          <p align="center">
+            <img src="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/blob/master/assets/logo.png" width="128px" alt="VideoDownloader Logo" />
+          </p>
+          <p align="center">
+            A powerful plugin for PowerToys Run to download videos from various platforms with ease.
+          </p>
 
-          ![VideoDownloader Plugin Logo](https://raw.githubusercontent.com/ruslanlap/PowerToysRun-VideoDownloader/master/icon.png)
+          ## ✨ What's New
+          - 🚀 Performance improvements: Faster download speeds and reduced memory usage.
+          - 🐛 Bug fixes: Fixed issues with certain video platforms and improved error handling.
+          - ✨ New features: Added support for more video formats and platforms.
+          - 🔧 PTRUN Compliance: All PowerToys Run linting issues resolved (PTRUN1301, PTRUN1303, PTRUN1401, PTRUN1402).
 
-          ## What's New in v${VERSION}
+          ## 📥 Installation
+          ### Prerequisites
+          - PowerToys installed on your system.
+          - .NET runtime (if applicable).
 
-          ### 🐛 Resolved All PTRUN Linting Issues:
-          - **PTRUN1301**: Fixed package naming convention - now follows "<name>-<version>-<platform>.zip" format
-          - **PTRUN1303**: Added proper SHA256 checksums for all release packages
-          - **PTRUN1401**: Synchronized plugin.json version with filename version
-          - **PTRUN1402**: Removed unnecessary PowerToys dependencies from package
+          ### Steps
+          1. Download the ZIP file for your platform (x64 or ARM64).
+          2. Extract the contents to \`%LOCALAPPDATA%\\Microsoft\\PowerToys\\PowerToys Run\\Plugins\\\`.
+          3. Restart PowerToys.
+          4. Start using with \`Alt+Space\` then type \`dl <URL>\`.
 
-          ### ✨ New Features:
-          - Enhanced build workflow with proper artifact naming
-          - Automatic version synchronization between plugin.json and release tags
-          - Comprehensive checksum generation for security verification
+          ### Troubleshooting
+          - If the plugin does not appear, ensure that the files are extracted to the correct directory.
+          - Make sure PowerToys is up to date.
 
-          ### 🔧 Technical Updates:
-          - Full PowerToys Run linting compliance
-          - Optimized package size by removing redundant dependencies
-          - Better CI/CD pipeline with proper error handling
+          ## 🔍 Quick Commands
+          | Command                     | Description                         |
+          |-----------------------------|-------------------------------------|
+          | \`dl <URL>\`                  | Download a video in the best quality |
+          | \`dl --audio <URL>\`          | Download audio only                  |
+          | \`dl --quality <quality> <URL>\` | Download with specific quality      |
+          | \`dl --list-formats <URL>\`   | Show available formats               |
+          | \`dl --help\`                 | Display help information             |
 
-          ## Installation
+          ## 🙏 Thank You
+          Thank you for using VideoDownloader! Your feedback and contributions are greatly appreciated.
 
-          1. Download the ZIP file for your platform (x64 or ARM64)
-          2. Extract to \`%LOCALAPPDATA%\\Microsoft\\PowerToys\\PowerToys Run\\Plugins\\\`
-          3. Restart PowerToys
-          4. Use \`dl\` keyword to download videos from YouTube and other supported sites
+          If you encounter any issues or have suggestions, please [open an issue](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/issues).
 
-          Made with ❤️ by [ruslanlap](https://github.com/ruslanlap)
+          Made with ❤️ by <a href="https://github.com/ruslanlap">ruslanlap</a>
+
+          Special thanks to all contributors and the PowerToys community for their support.
           EOL
           echo "RELEASE_NOTES<<EOF" >> $GITHUB_OUTPUT
           cat release_notes.md >> $GITHUB_OUTPUT
