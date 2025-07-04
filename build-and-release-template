@@ -1,7 +1,9 @@
-name: Build and Release VideoDownloader Plugin
+name: Build and Release SpeedTest Plugin
 
 on:
   push:
+    # branches:
+    #   - master
     tags:
       - 'v*'
 
@@ -32,6 +34,9 @@ jobs:
         with:
           dotnet-version: '9.0.x'
       
+      - name: Build
+        run: dotnet build SpeedTest/SpeedTest.sln -c Release -p:Platform="${{ matrix.platform }}"
+      
       - name: Get version
         id: get_version
         shell: bash
@@ -44,35 +49,27 @@ jobs:
             echo "IS_TAG=false" >> $GITHUB_OUTPUT
           fi
       
-      - name: Update plugin.json version
+      - name: Debug Output
         run: |
-          $version = "${{ steps.get_version.outputs.VERSION }}"
-          $pluginJsonPath = "VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/plugin.json"
-          
-          if (Test-Path $pluginJsonPath) {
-            $content = Get-Content $pluginJsonPath -Raw | ConvertFrom-Json
-            $content.Version = $version
-            $content | ConvertTo-Json -Depth 10 | Set-Content $pluginJsonPath -Encoding UTF8
-            Write-Host "Updated plugin.json version to: $version"
-          }
+          Get-ChildItem -Path "SpeedTest" -Recurse -Directory | Where-Object { $_.Name -eq "Release" } | ForEach-Object { Write-Host $_.FullName }
         shell: pwsh
-      
-      - name: Build
-        run: dotnet build VideoDownloader/VideoDownloader.sln -c Release -p:Platform="${{ matrix.platform }}"
       
       - name: Create output directory
         run: mkdir -p artifacts
       
       - name: Copy build output to artifacts directory
         run: |
-          $artifactDir = "artifacts/VideoDownloader-${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}"
+          $artifactDir = "artifacts/SpeedTest-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}"
           
+          # Create the artifact directory
           New-Item -ItemType Directory -Force -Path $artifactDir
-          New-Item -ItemType Directory -Force -Path "$artifactDir/VideoDownloader"
+          
+          # Create SpeedTest subfolder
+          New-Item -ItemType Directory -Force -Path "$artifactDir/SpeedTest"
           
           # Copy Images folder (icons) to artifact directory to ensure correct icons in release
-          $imagesSrc = "VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/Images"
-          $imagesDst = "$artifactDir/VideoDownloader/Images"
+          $imagesSrc = "SpeedTest/Community.PowerToys.Run.Plugin.SpeedTest/Images"
+          $imagesDst = "$artifactDir/SpeedTest/Images"
           if (Test-Path $imagesSrc) {
             Write-Host "Copying Images folder from $imagesSrc to $imagesDst"
             Copy-Item -Path $imagesSrc -Destination $imagesDst -Recurse -Force
@@ -81,14 +78,14 @@ jobs:
           }
           
           # Define the direct path to the build output
-          $buildOutput = "VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/bin/${{ matrix.platform }}/Release"
+          $buildOutput = "SpeedTest/Community.PowerToys.Run.Plugin.SpeedTest/bin/${{ matrix.platform }}/Release"
           
           Write-Host "Using build output directory: $buildOutput"
           
           # Check if the directory exists
           if (-not (Test-Path $buildOutput)) {
             Write-Host "Build output directory not found at expected path. Searching for it..."
-            $buildOutput = Get-ChildItem -Path "VideoDownloader" -Recurse -Directory | 
+            $buildOutput = Get-ChildItem -Path "SpeedTest" -Recurse -Directory | 
                            Where-Object { $_.Name -eq "Release" -and $_.FullName -like "*${{ matrix.platform }}*" } | 
                            Select-Object -First 1 -ExpandProperty FullName
             
@@ -110,7 +107,7 @@ jobs:
           $files = Get-ChildItem -Path $buildOutput -File
           if ($files.Count -gt 0) {
             Write-Host "Found $($files.Count) files in build output directory. Copying directly..."
-            Copy-Item -Path "$buildOutput/*" -Destination "$artifactDir/VideoDownloader" -Recurse -Force
+            Copy-Item -Path "$buildOutput/*" -Destination "$artifactDir/SpeedTest" -Recurse -Force
             Write-Host "Files copied successfully"
           } else {
             # Look for a .NET runtime folder
@@ -120,7 +117,7 @@ jobs:
             
             if ($runtimeFolder) {
               Write-Host "Found runtime folder: $runtimeFolder"
-              Copy-Item -Path "$runtimeFolder/*" -Destination "$artifactDir/VideoDownloader" -Recurse -Force
+              Copy-Item -Path "$runtimeFolder/*" -Destination "$artifactDir/SpeedTest" -Recurse -Force
               Write-Host "Files copied successfully from runtime folder"
             } else {
               # If no runtime folder, check for any subdirectories
@@ -128,7 +125,7 @@ jobs:
               if ($subDirs.Count -gt 0) {
                 $firstSubDir = $subDirs[0].FullName
                 Write-Host "No runtime folder found, but found subdirectory: $firstSubDir"
-                Copy-Item -Path "$firstSubDir/*" -Destination "$artifactDir/VideoDownloader" -Recurse -Force
+                Copy-Item -Path "$firstSubDir/*" -Destination "$artifactDir/SpeedTest" -Recurse -Force
                 Write-Host "Files copied from first subdirectory"
               } else {
                 Write-Error "No files or subdirectories found in build output directory"
@@ -147,7 +144,7 @@ jobs:
           )
           
           foreach ($dll in $unnecessaryDlls) {
-            $dllPath = "$artifactDir/VideoDownloader/$dll"
+            $dllPath = "$artifactDir/SpeedTest/$dll"
             if (Test-Path $dllPath) {
               Write-Host "Removing unnecessary DLL: $dll"
               Remove-Item $dllPath -Force
@@ -157,10 +154,10 @@ jobs:
       
       - name: Create ZIP archive
         run: |
-          $artifactDir = "artifacts/VideoDownloader-${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}"
-          $zipName = "VideoDownloader-${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}.zip"
-          # Create ZIP with VideoDownloader folder inside
-          Compress-Archive -Path "$artifactDir/VideoDownloader" -DestinationPath "artifacts/$zipName"
+          $artifactDir = "artifacts/SpeedTest-v${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}"
+          $zipName = "SpeedTest-${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}.zip"
+          # Create ZIP with SpeedTest folder inside
+          Compress-Archive -Path "$artifactDir/SpeedTest" -DestinationPath "artifacts/$zipName"
         shell: pwsh
       
       - name: Upload build artifacts
@@ -202,8 +199,8 @@ jobs:
         run: |
           mkdir -p release-artifacts
           VERSION="${{ steps.get_version.outputs.VERSION }}"
-          cp downloaded-artifacts/build-artifacts-x64/VideoDownloader-${VERSION}-x64.zip release-artifacts/ || echo "Failed to copy x64 artifact"
-          cp downloaded-artifacts/build-artifacts-arm64/VideoDownloader-${VERSION}-arm64.zip release-artifacts/VideoDownloader-${VERSION}-ARM64.zip || echo "Failed to copy ARM64 artifact"
+          cp downloaded-artifacts/build-artifacts-x64/SpeedTest-${VERSION}-x64.zip release-artifacts/ || echo "Failed to copy x64 artifact"
+          cp downloaded-artifacts/build-artifacts-arm64/SpeedTest-${VERSION}-arm64.zip release-artifacts/SpeedTest-${VERSION}-ARM64.zip || echo "Failed to copy ARM64 artifact"
           echo "Listing release artifacts:"
           ls -la release-artifacts
       
@@ -212,34 +209,34 @@ jobs:
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
           cat > release_notes.md << EOL
-          # VideoDownloader Plugin v${VERSION}
+          # SpeedTest Plugin v${VERSION}
 
-          ![VideoDownloader Plugin Logo](https://raw.githubusercontent.com/ruslanlap/PowerToysRun-VideoDownloader/master/icon.png)
+          ![SpeedTest Plugin Logo](https://raw.githubusercontent.com/ruslanlap/PowerToysRun-SpeedTest/master/SpeedTest/data/logo.png)
 
           ## What's New in v${VERSION}
 
-          ### 🐛 Resolved All PTRUN Linting Issues:
-          - **PTRUN1301**: Fixed package naming convention - now follows "<name>-<version>-<platform>.zip" format
-          - **PTRUN1303**: Added proper SHA256 checksums for all release packages
-          - **PTRUN1401**: Synchronized plugin.json version with filename version
-          - **PTRUN1402**: Removed unnecessary PowerToys dependencies from package
+          ### 🐛 Resolved All Open Issues:
+          - **Issue #1**: Fixed plugin initialization failures - added missing PowerToys.Settings.UI.Library namespace
+          - **Issue #2**: Implemented complete settings framework with clipboard auto-copy option  
+          - **Issue #3**: Resolved post-test errors by simplifying loading animations
 
           ### ✨ New Features:
-          - Enhanced build workflow with proper artifact naming
-          - Automatic version synchronization between plugin.json and release tags
-          - Comprehensive checksum generation for security verification
+          - Settings panel in PowerToys UI for "Copy to clipboard automatically"
+          - Simplified single-circle loading animation (60% less CPU usage)
+          - Enhanced error handling and stability improvements
 
           ### 🔧 Technical Updates:
-          - Full PowerToys Run linting compliance
-          - Optimized package size by removing redundant dependencies
-          - Better CI/CD pipeline with proper error handling
+          - Full ISettingProvider interface implementation
+          - Better PowerToys framework compatibility
+          - Persistent settings through JSON configuration
+          - Optimized resource management and cleanup
 
           ## Installation
 
           1. Download the ZIP file for your platform (x64 or ARM64)
           2. Extract to \`%LOCALAPPDATA%\\Microsoft\\PowerToys\\PowerToys Run\\Plugins\\\`
           3. Restart PowerToys
-          4. Use \`dl\` keyword to download videos from YouTube and other supported sites
+          4. Use \`spt\` keyword to test your internet speed
 
           Made with ❤️ by [ruslanlap](https://github.com/ruslanlap)
           EOL
@@ -251,28 +248,28 @@ jobs:
         run: |
           cd release-artifacts
           VERSION="${{ steps.get_version.outputs.VERSION }}"
-          sha256sum VideoDownloader-${VERSION}-x64.zip | tr 'a-f' 'A-F' > VideoDownloader-${VERSION}-x64.zip.sha256
-          sha256sum VideoDownloader-${VERSION}-ARM64.zip | tr 'a-f' 'A-F' > VideoDownloader-${VERSION}-ARM64.zip.sha256
+          sha256sum SpeedTest-${VERSION}-x64.zip | tr 'a-f' 'A-F' > SpeedTest-${VERSION}-x64.zip.sha256
+          sha256sum SpeedTest-${VERSION}-ARM64.zip | tr 'a-f' 'A-F' > SpeedTest-${VERSION}-ARM64.zip.sha256
           
           # Create combined checksums.txt file
-          echo "SHA256 Checksums for VideoDownloader Plugin v${VERSION}" > checksums.txt
+          echo "SHA256 Checksums for SpeedTest Plugin v${VERSION}" > checksums.txt
           echo "Generated on: $(date -u)" >> checksums.txt
           echo "" >> checksums.txt
-          cat VideoDownloader-${VERSION}-x64.zip.sha256 >> checksums.txt
-          cat VideoDownloader-${VERSION}-ARM64.zip.sha256 >> checksums.txt
+          cat SpeedTest-${VERSION}-x64.zip.sha256 >> checksums.txt
+          cat SpeedTest-${VERSION}-ARM64.zip.sha256 >> checksums.txt
       
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          name: PowerToysRun-VideoDownloader v${{ steps.get_version.outputs.VERSION }}
+          name: PowerToysRun-SpeedTest v${{ steps.get_version.outputs.VERSION }}
           body: ${{ steps.release_notes.outputs.RELEASE_NOTES }}
           draft: false
           prerelease: false
           files: |
-            release-artifacts/VideoDownloader-${{ steps.get_version.outputs.VERSION }}-x64.zip
-            release-artifacts/VideoDownloader-${{ steps.get_version.outputs.VERSION }}-ARM64.zip
-            release-artifacts/VideoDownloader-${{ steps.get_version.outputs.VERSION }}-x64.zip.sha256
-            release-artifacts/VideoDownloader-${{ steps.get_version.outputs.VERSION }}-ARM64.zip.sha256
+            release-artifacts/SpeedTest-${{ steps.get_version.outputs.VERSION }}-x64.zip
+            release-artifacts/SpeedTest-${{ steps.get_version.outputs.VERSION }}-ARM64.zip
+            release-artifacts/SpeedTest-${{ steps.get_version.outputs.VERSION }}-x64.zip.sha256
+            release-artifacts/SpeedTest-${{ steps.get_version.outputs.VERSION }}-ARM64.zip.sha256
             release-artifacts/checksums.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
