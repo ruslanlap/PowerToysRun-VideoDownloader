@@ -110,7 +110,9 @@ jobs:
           $files = Get-ChildItem -Path $buildOutput -File
           if ($files.Count -gt 0) {
             Write-Host "Found $($files.Count) files in build output directory. Copying directly..."
-            Copy-Item -Path "$buildOutput/*" -Destination "$artifactDir/VideoDownloader" -Recurse -Force
+            Get-ChildItem -Path $buildOutput -File | ForEach-Object {
+              Copy-Item -Path $_.FullName -Destination "$artifactDir/VideoDownloader" -Force
+            }
             Write-Host "Files copied successfully"
           } else {
             # Look for a .NET runtime folder
@@ -120,7 +122,7 @@ jobs:
             
             if ($runtimeFolder) {
               Write-Host "Found runtime folder: $runtimeFolder"
-              Copy-Item -Path "$runtimeFolder/*" -Destination "$artifactDir/VideoDownloader" -Recurse -Force
+              Copy-Item -Path "$runtimeFolder\*" -Destination "$artifactDir/VideoDownloader" -Recurse -Force
               Write-Host "Files copied successfully from runtime folder"
             } else {
               # If no runtime folder, check for any subdirectories
@@ -128,7 +130,7 @@ jobs:
               if ($subDirs.Count -gt 0) {
                 $firstSubDir = $subDirs[0].FullName
                 Write-Host "No runtime folder found, but found subdirectory: $firstSubDir"
-                Copy-Item -Path "$firstSubDir/*" -Destination "$artifactDir/VideoDownloader" -Recurse -Force
+                Copy-Item -Path "$firstSubDir\*" -Destination "$artifactDir/VideoDownloader" -Recurse -Force
                 Write-Host "Files copied from first subdirectory"
               } else {
                 Write-Error "No files or subdirectories found in build output directory"
@@ -147,10 +149,10 @@ jobs:
           )
           
           foreach ($dll in $unnecessaryDlls) {
-            $dllPath = "$artifactDir/VideoDownloader/$dll"
-            if (Test-Path $dllPath) {
-              Write-Host "Removing unnecessary DLL: $dll"
-              Remove-Item $dllPath -Force
+            $dlls = Get-ChildItem -Path "$artifactDir/VideoDownloader" -Recurse -Filter $dll
+            foreach ($item in $dlls) {
+              Write-Host "Removing unnecessary DLL: $($item.FullName)"
+              Remove-Item $item.FullName -Force
             }
           }
         shell: pwsh
