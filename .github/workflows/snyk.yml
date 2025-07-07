@@ -1,0 +1,34 @@
+name: snyk
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  security:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Install Snyk
+        run: npm install -g snyk
+
+      - name: Authenticate
+        run: snyk auth ${{ secrets.SNYK_TOKEN }}
+
+      - name: Test
+        run: snyk test --all-projects
+
+      - name: Monitor
+        run: snyk monitor --all-projects

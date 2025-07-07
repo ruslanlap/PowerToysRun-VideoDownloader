@@ -67,6 +67,7 @@
   <a href="https://twitter.com/intent/tweet?text=Check%20out%20this%20awesome%20PowerToys%20Run%20Video%20Downloader%20plugin!&url=https://github.com/ruslanlap/PowerToysRun-VideoDownloader">
     <img src="https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Fruslanlap%2FPowerToysRun-VideoDownloader" alt="Tweet">
   </a>
+  
 </div>
 
 <div align="center">
@@ -81,6 +82,8 @@
   <img src="https://img.shields.io/badge/Windows%2011-Compatible-0078d7?style=flat-square&logo=windows" alt="Windows 11 Compatible">
   <img src="https://img.shields.io/badge/PowerToys-v0.75%2B-0078d7?style=flat-square" alt="PowerToys v0.75+">
   <img src="https://img.shields.io/badge/Automated%20Builds-CI%2FCD-2088FF?style=flat-square&logo=github-actions" alt="Automated Builds">
+  <a href="https://github.com/hlaueriksson/awesome-powertoys-run-plugins">
+    <img src="https://awesome.re/mentioned-badge.svg" alt="Mentioned in Awesome PowerToys Run Plugins">
 </div>
 
 ---
