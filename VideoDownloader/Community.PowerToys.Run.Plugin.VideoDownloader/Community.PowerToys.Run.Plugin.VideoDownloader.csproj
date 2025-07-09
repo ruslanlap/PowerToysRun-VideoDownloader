@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <PackageReference Include="Community.PowerToys.Run.Plugin.Dependencies" Version="0.91.0" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.5" />
   </ItemGroup>
 
   <ItemGroup>
@@ -34,5 +35,4 @@
 
   <ItemGroup>
     <Folder Include="bin\" />
-  </ItemGroup>
-</Project>
+  </ItemGroup></Project>

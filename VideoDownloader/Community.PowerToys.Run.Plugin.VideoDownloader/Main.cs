@@ -11,6 +11,8 @@ using System.Windows;
 using ManagedCommon;
 using Wox.Plugin;
 using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading;
 using Microsoft.PowerToys.Settings.UI.Library;
 
 namespace Community.PowerToys.Run.Plugin.VideoDownloader
@@ -28,6 +30,9 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         private readonly string _settingsPath;
         private static readonly HttpClient _httpClient = new HttpClient();
         private static bool _isSetupRunning = false;
+        private DownloadHistory _history;
+        private SemaphoreSlim _semaphore = new SemaphoreSlim(1);
+        private string _dbPath = string.Empty;
 
         public Main()
         {
@@ -42,7 +47,10 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
             _iconPath = Path.Combine(context.CurrentPluginMetadata.PluginDirectory, "Images", "videodownloader.dark.png");
+            _dbPath = Path.Combine(context.CurrentPluginMetadata.PluginDirectory, "history.db");
+            _history = new DownloadHistory(_dbPath);
             LoadSettings();
+            _semaphore = new SemaphoreSlim(_settings.MaxConcurrentDownloads);
         }
 
         public List<Result> Query(Query query)
@@ -73,6 +81,25 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             }
 
             var search = query.Search.Trim();
+            if (search.Equals("--history", StringComparison.OrdinalIgnoreCase))
+            {
+                foreach (var h in _history.GetLast(10))
+                {
+                    results.Add(new Result
+                    {
+                        Title = $"{(h.Success ? "✅" : "❌")} {Path.GetFileName(h.FilePath)}",
+                        SubTitle = $"{h.Url} | {h.Timestamp}",
+                        IcoPath = _iconPath
+                    });
+                }
+                return results;
+            }
+
+            if (search.Equals("--settings", StringComparison.OrdinalIgnoreCase))
+            {
+                _context.API.ShowMsg("Settings", "Open PowerToys Settings → PowerToys Run → Plugin Manager → Video Downloader", _iconPath);
+                return results;
+            }
             if (IsValidUrl(search))
             {
                 var domain = GetDomainFromUrl(search);
@@ -184,8 +211,9 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
         private void DownloadAudio(string url)
         {
-            Task.Run(() =>
+            Task.Run(async () =>
             {
+                await _semaphore.WaitAsync();
                 try
                 {
                     _context.API.ShowMsg("⏳ Downloading...", "Audio download started", _iconPath);
@@ -205,8 +233,8 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         "-o", $"\"{outputTemplate}\"",
                         $"\"{url}\""
                     }.Where(x => !string.IsNullOrEmpty(x)));
-
-                    var success = RunYtDlpCommand(command);
+                    var success = await RunYtDlpCommandAsync(command);
+                    _history.Log(url, outputTemplate, success, _settings.AudioFormat);
                     if (success)
                     {
                         _context.API.ShowMsg("✅ Audio Downloaded!", "Folder will open automatically", _iconPath);
@@ -217,13 +245,18 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                 {
                     _context.API.ShowMsg("❌ Download Error", e.Message, _iconPath);
                 }
+                finally
+                {
+                    _semaphore.Release();
+                }
             });
         }
 
         private void DownloadWithQuality(string url, string quality)
         {
-            Task.Run(() =>
+            Task.Run(async () =>
             {
+                await _semaphore.WaitAsync();
                 try
                 {
                     _context.API.ShowMsg("⏳ Downloading...", $"Video download in {quality} quality started", _iconPath);
@@ -252,7 +285,8 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     }
 
                     var command = BuildYtDlpCommand(commandParts);
-                    var success = RunYtDlpCommand(command);
+                    var success = await RunYtDlpCommandAsync(command);
+                    _history.Log(url, outputTemplate, success, _settings.VideoFormat);
                     if (success)
                     {
                         _context.API.ShowMsg("✅ Video Downloaded!", "Folder will open automatically", _iconPath);
@@ -262,6 +296,10 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                 catch (Exception e)
                 {
                     _context.API.ShowMsg("❌ Download Error", e.Message, _iconPath);
+                }
+                finally
+                {
+                    _semaphore.Release();
                 }
             });
         }
@@ -328,30 +366,54 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             }
         }
 
-        private bool RunYtDlpCommand(string arguments)
+        private async Task<bool> RunYtDlpCommandAsync(string arguments)
         {
             try
             {
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = GetYtDlpExecutablePath(),
-                    Arguments = arguments,
+                    Arguments = arguments + " --newline",
                     WorkingDirectory = _settings.DownloadPath,
                     UseShellExecute = false,
-                    RedirectStandardOutput = false,
-                    RedirectStandardError = false,
-                    CreateNoWindow = !_settings.ShowDownloadWindow,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
                 };
 
-                using var process = Process.Start(startInfo);
-                process?.WaitForExit();
-                return process?.ExitCode == 0;
+                using var process = new Process { StartInfo = startInfo };
+                var window = new DownloadProgressWindow();
+                if (!_settings.ShowDownloadWindow)
+                {
+                    Application.Current.Dispatcher.Invoke(() => window.Show());
+                }
+                process.OutputDataReceived += (s, e) =>
+                {
+                    var (p, eta) = TryParseProgress(e.Data);
+                    if (p >= 0)
+                        window.Update(p, eta);
+                };
+
+                process.Start();
+                process.BeginOutputReadLine();
+                await process.WaitForExitAsync();
+                Application.Current.Dispatcher.Invoke(() => window.Close());
+                return process.ExitCode == 0;
             }
             catch (Exception e)
             {
                 _context.API.ShowMsg("❌ yt-dlp Error", e.Message, _iconPath);
                 return false;
             }
+        }
+
+        private (double Percent, string Eta) TryParseProgress(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line)) return (-1, string.Empty);
+            var match = Regex.Match(line, "\\[download\\]\\s+(\\d+\\.?\\d*)%.*?ETA\\s+(\\S+)");
+            if (match.Success && double.TryParse(match.Groups[1].Value, out var p))
+                return (p, match.Groups[2].Value);
+            return (-1, string.Empty);
         }
 
         private string RunYtDlpCommandWithOutput(string arguments)
@@ -574,6 +636,14 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         DisplayDescription = "Display console window during download",
                         PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
                         Value = _settings.ShowDownloadWindow
+                    },
+                    new()
+                    {
+                        Key = "MaxConcurrentDownloads",
+                        DisplayLabel = "Max Concurrent Downloads",
+                        DisplayDescription = "Number of downloads allowed at the same time",
+                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Textbox,
+                        TextValue = _settings.MaxConcurrentDownloads.ToString()
                     }
                 };
             }
@@ -721,6 +791,17 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     Debug.WriteLine($"Show download window updated to: {_settings.ShowDownloadWindow}");
                 }
 
+                var concurrencyOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "MaxConcurrentDownloads");
+                if (concurrencyOption != null && int.TryParse(concurrencyOption.TextValue, out var newConcurrency))
+                {
+                    if (newConcurrency > 0 && newConcurrency != _settings.MaxConcurrentDownloads)
+                    {
+                        _settings.MaxConcurrentDownloads = newConcurrency;
+                        _semaphore = new SemaphoreSlim(_settings.MaxConcurrentDownloads);
+                        Debug.WriteLine($"Max concurrent downloads updated to: {_settings.MaxConcurrentDownloads}");
+                    }
+                }
+
                 // Always save settings after any change
                 SaveSettings();
                 Debug.WriteLine("Settings update completed and saved");
@@ -748,5 +829,5 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         public bool EmbedSubtitles { get; set; } = true;
         public bool EmbedMetadata { get; set; } = true;
         public bool ShowDownloadWindow { get; set; } = false;
-    }
-}
+        public int MaxConcurrentDownloads { get; set; } = 2;
+    }}
