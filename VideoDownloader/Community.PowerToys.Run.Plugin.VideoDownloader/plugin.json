@@ -4,7 +4,7 @@
   "IsGlobal": false,
   "Name": "VideoDownloader",
   "Author": "ruslanlap",
-  "Version": "1.0.8",
+  "Version": "1.0.9",
   "Language": "csharp",
   "Website": "https://github.com/ruslanlap/PowerToysRun-VideoDownloader",
   "ExecuteFileName": "Community.PowerToys.Run.Plugin.VideoDownloader.dll",

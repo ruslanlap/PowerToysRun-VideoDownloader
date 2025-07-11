@@ -252,21 +252,26 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     _context.API.ShowMsg("⏳ Downloading...", "Audio download started", _iconPath);
 
                     var ffmpegDir = Path.GetDirectoryName(GetFfmpegExecutablePath());
-                    var outputTemplate = GetOutputTemplate();
+                    var outputTemplate = GetSafeOutputTemplate();
 
-                    var command = BuildYtDlpCommand(new[]
+                    var commandParts = new List<string>
                     {
                         "--ffmpeg-location", $"\"{ffmpegDir}\"",
                         "-f", "bestaudio/best",
                         "-x",
                         "--audio-format", _settings.AudioFormat,
                         "--audio-quality", _settings.AudioQuality.ToString(),
-                        _settings.EmbedMetadata ? "--embed-metadata" : "",
-                        _settings.EmbedMetadata ? "--add-metadata" : "",
-                        _settings.HandleDuplicateFilenames ? "--no-overwrites" : "",
-                        "-o", $"\"{outputTemplate}\"",
-                        $"\"{url}\""
-                    }.Where(x => !string.IsNullOrEmpty(x)));
+                        "--no-overwrites", // Always prevent overwrites
+                        "-o", $"\"{outputTemplate}\""
+                    };
+
+                    if (_settings.EmbedMetadata)
+                    {
+                        commandParts.AddRange(new[] { "--embed-metadata", "--add-metadata" });
+                    }
+
+                    commandParts.Add($"\"{url}\"");
+                    var command = BuildYtDlpCommand(commandParts);
 
                     var success = RunYtDlpCommand(command);
                     if (success)
@@ -292,21 +297,16 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                     var format = GetQualityFormat(quality);
                     var ffmpegDir = Path.GetDirectoryName(GetFfmpegExecutablePath());
-                    var outputTemplate = GetOutputTemplate();
+                    var outputTemplate = GetSafeOutputTemplate();
 
                     var commandParts = new List<string>
                     {
                         "--ffmpeg-location", $"\"{ffmpegDir}\"",
                         "-f", $"\"{format}\"",
-                        "--merge-output-format", _settings.VideoFormat
+                        "--merge-output-format", _settings.VideoFormat,
+                        "--no-overwrites", // Always prevent overwrites
+                        "-o", $"\"{outputTemplate}\""
                     };
-
-                    if (_settings.HandleDuplicateFilenames)
-                    {
-                        commandParts.Add("--no-overwrites");
-                    }
-
-                    commandParts.AddRange(new[] { "-o", $"\"{outputTemplate}\"" });
 
                     if (_settings.EmbedSubtitles)
                     {
@@ -392,6 +392,17 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             return Path.Combine(_settings.DownloadPath, template);
         }
 
+        private string GetSafeOutputTemplate()
+        {
+            var template = _settings.CustomFilenameTemplate;
+            if (string.IsNullOrWhiteSpace(template))
+            {
+                // Always include ID to prevent filename conflicts
+                template = "%(title)s [%(id)s].%(ext)s";
+            }
+            return Path.Combine(_settings.DownloadPath, template);
+        }
+
         private void OpenDownloadFolder()
         {
             try
@@ -421,7 +432,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
-                    CreateNoWindow = !_settings.ShowDownloadWindow,
+                    CreateNoWindow = true,
                 };
 
                 using var process = Process.Start(startInfo);
@@ -433,7 +444,24 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                 if (exitCode != 0)
                 {
                     var errorMsg = !string.IsNullOrEmpty(error) ? error : output ?? "Unknown error occurred";
-                    _context.API.ShowMsg("❌ Download Failed", $"Exit code: {exitCode}\n{errorMsg.Substring(0, Math.Min(200, errorMsg.Length))}", _iconPath);
+                    var shortError = errorMsg.Length > 200 ? errorMsg.Substring(0, 200) + "..." : errorMsg;
+                    
+                    // Check for common errors and provide helpful messages
+                    string helpfulMessage = "";
+                    if (errorMsg.Contains("File exists"))
+                    {
+                        helpfulMessage = "\n\nTip: Try enabling 'Handle Duplicate Filenames' in settings or use a custom filename template.";
+                    }
+                    else if (errorMsg.Contains("network") || errorMsg.Contains("timeout"))
+                    {
+                        helpfulMessage = "\n\nTip: Check your internet connection and try again.";
+                    }
+                    else if (errorMsg.Contains("format") || errorMsg.Contains("quality"))
+                    {
+                        helpfulMessage = "\n\nTip: Try a different quality setting or check available formats.";
+                    }
+                    
+                    _context.API.ShowMsg("❌ Download Failed", $"Exit code: {exitCode}\n{shortError}{helpfulMessage}", _iconPath);
                     Debug.WriteLine($"yt-dlp failed with exit code {exitCode}: {errorMsg}");
                     return false;
                 }
