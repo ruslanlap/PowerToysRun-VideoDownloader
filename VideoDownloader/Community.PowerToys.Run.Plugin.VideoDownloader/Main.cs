@@ -249,10 +249,13 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             {
                 try
                 {
-                    _context.API.ShowMsg("⏳ Downloading...", "Audio download started", _iconPath);
+                    if (_settings.ShowNotifications && !_settings.MinimalNotifications)
+                    {
+                        _context.API.ShowMsg("⏳ Downloading...", "Audio download started", _iconPath);
+                    }
 
                     var ffmpegDir = Path.GetDirectoryName(GetFfmpegExecutablePath());
-                    var outputTemplate = GetSafeOutputTemplate();
+                    var outputTemplate = GetSafeOutputTemplate("audio");
 
                     var commandParts = new List<string>
                     {
@@ -276,7 +279,10 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     var success = RunYtDlpCommand(command);
                     if (success)
                     {
-                        _context.API.ShowMsg("✅ Audio Downloaded!", "Folder will open automatically", _iconPath);
+                        if (_settings.ShowNotifications)
+                        {
+                            _context.API.ShowMsg("✅ Audio Downloaded!", "Folder will open automatically", _iconPath);
+                        }
                         OpenDownloadFolder();
                     }
                 }
@@ -293,11 +299,14 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             {
                 try
                 {
-                    _context.API.ShowMsg("⏳ Downloading...", $"Video download in {quality} quality started", _iconPath);
+                    if (_settings.ShowNotifications && !_settings.MinimalNotifications)
+                    {
+                        _context.API.ShowMsg("⏳ Downloading...", $"Video download in {quality} quality started", _iconPath);
+                    }
 
                     var format = GetQualityFormat(quality);
                     var ffmpegDir = Path.GetDirectoryName(GetFfmpegExecutablePath());
-                    var outputTemplate = GetSafeOutputTemplate();
+                    var outputTemplate = GetSafeOutputTemplate(quality);
 
                     var commandParts = new List<string>
                     {
@@ -324,7 +333,10 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     var success = RunYtDlpCommand(command);
                     if (success)
                     {
-                        _context.API.ShowMsg("✅ Video Downloaded!", "Folder will open automatically", _iconPath);
+                        if (_settings.ShowNotifications)
+                        {
+                            _context.API.ShowMsg("✅ Video Downloaded!", "Folder will open automatically", _iconPath);
+                        }
                         OpenDownloadFolder();
                     }
                 }
@@ -392,13 +404,21 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             return Path.Combine(_settings.DownloadPath, template);
         }
 
-        private string GetSafeOutputTemplate()
+        private string GetSafeOutputTemplate(string quality = "")
         {
             var template = _settings.CustomFilenameTemplate;
             if (string.IsNullOrWhiteSpace(template))
             {
-                // Always include ID to prevent filename conflicts
-                template = "%(title)s [%(id)s].%(ext)s";
+                if (_settings.IncludeQualityInFilename && !string.IsNullOrEmpty(quality))
+                {
+                    // Include quality in filename
+                    template = $"%(title)s [{quality}] [%(id)s].%(ext)s";
+                }
+                else
+                {
+                    // Always include ID to prevent filename conflicts
+                    template = "%(title)s [%(id)s].%(ext)s";
+                }
             }
             return Path.Combine(_settings.DownloadPath, template);
         }
@@ -724,6 +744,30 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         DisplayDescription = "yt-dlp output template (e.g., %(title)s [%(id)s].%(ext)s). Leave empty for default.",
                         PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Textbox,
                         TextValue = _settings.CustomFilenameTemplate
+                    },
+                    new()
+                    {
+                        Key = "ShowNotifications",
+                        DisplayLabel = "Show Download Notifications",
+                        DisplayDescription = "Display status notifications during download process",
+                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
+                        Value = _settings.ShowNotifications
+                    },
+                    new()
+                    {
+                        Key = "MinimalNotifications",
+                        DisplayLabel = "Minimal Notifications",
+                        DisplayDescription = "Show only essential notifications (start and completion)",
+                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
+                        Value = _settings.MinimalNotifications
+                    },
+                    new()
+                    {
+                        Key = "IncludeQualityInFilename",
+                        DisplayLabel = "Include Quality in Filename",
+                        DisplayDescription = "Add quality suffix to filenames (e.g., video_720p.mp4)",
+                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
+                        Value = _settings.IncludeQualityInFilename
                     }
                 };
             }
@@ -885,6 +929,27 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     Debug.WriteLine($"Custom filename template updated to: {_settings.CustomFilenameTemplate}");
                 }
 
+                var showNotificationsOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "ShowNotifications");
+                if (showNotificationsOption != null && showNotificationsOption.Value != _settings.ShowNotifications)
+                {
+                    _settings.ShowNotifications = showNotificationsOption.Value;
+                    Debug.WriteLine($"Show notifications updated to: {_settings.ShowNotifications}");
+                }
+
+                var minimalNotificationsOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "MinimalNotifications");
+                if (minimalNotificationsOption != null && minimalNotificationsOption.Value != _settings.MinimalNotifications)
+                {
+                    _settings.MinimalNotifications = minimalNotificationsOption.Value;
+                    Debug.WriteLine($"Minimal notifications updated to: {_settings.MinimalNotifications}");
+                }
+
+                var includeQualityOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "IncludeQualityInFilename");
+                if (includeQualityOption != null && includeQualityOption.Value != _settings.IncludeQualityInFilename)
+                {
+                    _settings.IncludeQualityInFilename = includeQualityOption.Value;
+                    Debug.WriteLine($"Include quality in filename updated to: {_settings.IncludeQualityInFilename}");
+                }
+
                 // Always save settings after any change
                 SaveSettings();
                 Debug.WriteLine("Settings update completed and saved");
@@ -914,5 +979,8 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         public bool ShowDownloadWindow { get; set; } = false;
         public bool HandleDuplicateFilenames { get; set; } = true;
         public string CustomFilenameTemplate { get; set; } = "";
+        public bool ShowNotifications { get; set; } = true;
+        public bool MinimalNotifications { get; set; } = false;
+        public bool IncludeQualityInFilename { get; set; } = true;
     }
 }
