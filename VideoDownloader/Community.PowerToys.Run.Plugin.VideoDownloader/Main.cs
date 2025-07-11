@@ -255,18 +255,22 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     }
 
                     var ffmpegDir = Path.GetDirectoryName(GetFfmpegExecutablePath());
-                    var outputTemplate = GetSafeOutputTemplate("audio");
+                    var outputTemplate = GetOutputTemplate("audio");
 
                     var commandParts = new List<string>
                     {
                         "--ffmpeg-location", $"\"{ffmpegDir}\"",
-                        "-f", "bestaudio/best",
-                        "-x",
+                        "-x", // Extract audio
                         "--audio-format", _settings.AudioFormat,
                         "--audio-quality", _settings.AudioQuality.ToString(),
-                        "--no-overwrites", // Always prevent overwrites
                         "-o", $"\"{outputTemplate}\""
                     };
+
+                    // If auto-rename is off, use --no-overwrites to prevent overwriting files.
+                    if (!_settings.AutoRenameDuplicates && _settings.HandleDuplicateFilenames)
+                    {
+                        commandParts.Add("--no-overwrites");
+                    }
 
                     if (_settings.EmbedMetadata)
                     {
@@ -274,9 +278,10 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     }
 
                     commandParts.Add($"\"{url}\"");
-                    var command = BuildYtDlpCommand(commandParts);
 
+                    var command = BuildYtDlpCommand(commandParts);
                     var success = RunYtDlpCommand(command);
+
                     if (success)
                     {
                         if (_settings.ShowNotifications)
@@ -306,16 +311,21 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                     var format = GetQualityFormat(quality);
                     var ffmpegDir = Path.GetDirectoryName(GetFfmpegExecutablePath());
-                    var outputTemplate = GetSafeOutputTemplate(quality);
+                    var outputTemplate = GetOutputTemplate(quality);
 
                     var commandParts = new List<string>
                     {
                         "--ffmpeg-location", $"\"{ffmpegDir}\"",
                         "-f", $"\"{format}\"",
                         "--merge-output-format", _settings.VideoFormat,
-                        "--no-overwrites", // Always prevent overwrites
                         "-o", $"\"{outputTemplate}\""
                     };
+
+                    // If auto-rename is off, use --no-overwrites to prevent overwriting files.
+                    if (!_settings.AutoRenameDuplicates && _settings.HandleDuplicateFilenames)
+                    {
+                        commandParts.Add("--no-overwrites");
+                    }
 
                     if (_settings.EmbedSubtitles)
                     {
@@ -331,6 +341,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                     var command = BuildYtDlpCommand(commandParts);
                     var success = RunYtDlpCommand(command);
+
                     if (success)
                     {
                         if (_settings.ShowNotifications)
@@ -353,27 +364,26 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             {
                 try
                 {
-                    var command = BuildYtDlpCommand(new[]
+                    var arguments = $"-F \"{url}\"";
+                    var (success, output) = RunYtDlpCommandWithOutput(arguments);
+                    if (success && !string.IsNullOrEmpty(output))
                     {
-                        "--list-formats",
-                        "--no-download",
-                        $"\"{url}\""
-                    });
-
-                    var output = RunYtDlpCommandWithOutput(command);
-                    if (!string.IsNullOrEmpty(output))
-                    {
-                        var info = output.TrimEnd();
+                        var info = output.Trim();
+                        // The output needs to be displayed on the UI thread.
                         Application.Current.Dispatcher.Invoke(() =>
                         {
                             var window = new VideoInfoWindow(info);
                             window.Show();
                         });
                     }
+                    else
+                    {
+                        _context.API.ShowMsg("❌ Error", "Could not fetch video information.", _iconPath);
+                    }
                 }
                 catch (Exception e)
                 {
-                    _context.API.ShowMsg("❌ Information Error", e.Message, _iconPath);
+                    _context.API.ShowMsg("❌ Error", e.Message, _iconPath);
                 }
             });
         }
@@ -392,35 +402,37 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             _ => "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best",
         };
 
-        private string GetOutputTemplate()
+        private string GetOutputTemplate(string quality)
         {
-            var template = _settings.CustomFilenameTemplate;
-            if (string.IsNullOrWhiteSpace(template))
+            string template;
+            if (!string.IsNullOrWhiteSpace(_settings.CustomFilenameTemplate))
             {
-                template = _settings.HandleDuplicateFilenames 
-                    ? "%(title)s [%(id)s].%(ext)s"
-                    : "%(title)s.%(ext)s";
+                template = _settings.CustomFilenameTemplate;
             }
-            return Path.Combine(_settings.DownloadPath, template);
-        }
-
-        private string GetSafeOutputTemplate(string quality = "")
-        {
-            var template = _settings.CustomFilenameTemplate;
-            if (string.IsNullOrWhiteSpace(template))
+            else
             {
-                if (_settings.IncludeQualityInFilename && !string.IsNullOrEmpty(quality))
+                if (_settings.IncludeQualityInFilename && !string.IsNullOrEmpty(quality) && quality != "audio")
                 {
-                    // Include quality in filename
-                    template = $"%(title)s [{quality}] [%(id)s].%(ext)s";
+                    template = "%(title)s [%(id)s] [%(height)sp].%(ext)s";
                 }
                 else
                 {
-                    // Always include ID to prevent filename conflicts
                     template = "%(title)s [%(id)s].%(ext)s";
                 }
             }
-            return Path.Combine(_settings.DownloadPath, template);
+
+            var outputPath = Path.Combine(_settings.DownloadPath, template);
+            if (_settings.AutoRenameDuplicates)
+            {
+                // This tells yt-dlp to automatically add a number if the file exists, e.g., (1), (2)
+                var directory = Path.GetDirectoryName(outputPath);
+                var filename = Path.GetFileNameWithoutExtension(outputPath);
+                var extension = Path.GetExtension(outputPath);
+                outputPath = Path.Combine(directory, $"{filename}.%(autonumber)s{extension}");
+            }
+
+            // yt-dlp requires forward slashes, even on Windows.
+            return outputPath.Replace("\\", "/");
         }
 
         private void OpenDownloadFolder()
@@ -449,28 +461,48 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     FileName = GetYtDlpExecutablePath(),
                     Arguments = arguments,
                     WorkingDirectory = _settings.DownloadPath,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
                 };
 
+                if (_settings.ShowDownloadWindow)
+                {
+                    startInfo.UseShellExecute = true;
+                    startInfo.CreateNoWindow = false;
+                }
+                else
+                {
+                    startInfo.UseShellExecute = false;
+                    startInfo.RedirectStandardOutput = true;
+                    startInfo.RedirectStandardError = true;
+                    startInfo.CreateNoWindow = true;
+                }
+
                 using var process = Process.Start(startInfo);
-                var output = process?.StandardOutput.ReadToEnd();
-                var error = process?.StandardError.ReadToEnd();
-                process?.WaitForExit();
-                
-                var exitCode = process?.ExitCode ?? -1;
+                if (process == null)
+                {
+                    throw new InvalidOperationException("Failed to start yt-dlp process.");
+                }
+
+                string output = null;
+                string error = null;
+
+                if (!_settings.ShowDownloadWindow)
+                {
+                    output = process.StandardOutput.ReadToEnd();
+                    error = process.StandardError.ReadToEnd();
+                }
+
+                process.WaitForExit();
+
+                var exitCode = process.ExitCode;
                 if (exitCode != 0)
                 {
                     var errorMsg = !string.IsNullOrEmpty(error) ? error : output ?? "Unknown error occurred";
                     var shortError = errorMsg.Length > 200 ? errorMsg.Substring(0, 200) + "..." : errorMsg;
-                    
-                    // Check for common errors and provide helpful messages
+
                     string helpfulMessage = "";
                     if (errorMsg.Contains("File exists"))
                     {
-                        helpfulMessage = "\n\nTip: Try enabling 'Handle Duplicate Filenames' in settings or use a custom filename template.";
+                        helpfulMessage = "\n\nTip: The file already exists. Enable 'Handle Duplicate Filenames' in settings to auto-rename.";
                     }
                     else if (errorMsg.Contains("network") || errorMsg.Contains("timeout"))
                     {
@@ -478,19 +510,22 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     }
                     else if (errorMsg.Contains("format") || errorMsg.Contains("quality"))
                     {
-                        helpfulMessage = "\n\nTip: Try a different quality setting or check available formats.";
+                        helpfulMessage = "\n\nTip: The requested format may not be available. Try a different quality or check available formats.";
                     }
-                    
-                    _context.API.ShowMsg("❌ Download Failed", $"Exit code: {exitCode}\n{shortError}{helpfulMessage}", _iconPath);
+
+                    if (!_settings.ShowDownloadWindow)
+                    {
+                        _context.API.ShowMsg("❌ Download Failed", $"Exit code: {exitCode}\n{shortError}{helpfulMessage}", _iconPath);
+                    }
                     Debug.WriteLine($"yt-dlp failed with exit code {exitCode}: {errorMsg}");
                     return false;
                 }
-                
+
                 return true;
             }
             catch (Exception e)
             {
-                _context.API.ShowMsg("❌ yt-dlp Error", $"Exception: {e.Message}", _iconPath);
+                _context.API.ShowMsg("❌ yt-dlp Error", $"An exception occurred: {e.Message}", _iconPath);
                 Debug.WriteLine($"yt-dlp exception: {e}");
                 return false;
             }
@@ -733,12 +768,19 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     {
                         Key = "HandleDuplicateFilenames",
                         DisplayLabel = "Handle Duplicate Filenames",
-                        DisplayDescription = "Prevent overwriting existing files with same name",
+                        DisplayDescription = "If enabled, downloads will fail if a file with the same name already exists. If disabled, existing files will be overwritten.",
                         PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
                         Value = _settings.HandleDuplicateFilenames
                     },
                     new()
                     {
+                        Key = "AutoRenameDuplicates",
+                        DisplayLabel = "Auto-rename duplicate files",
+                        DisplayDescription = "If enabled, automatically appends a number to the filename if a file with the same name exists (e.g., video(1).mp4).",
+                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
+                        Value = _settings.AutoRenameDuplicates
+                    },
+                    new()
                         Key = "CustomFilenameTemplate",
                         DisplayLabel = "Custom Filename Template",
                         DisplayDescription = "yt-dlp output template (e.g., %(title)s [%(id)s].%(ext)s). Leave empty for default.",
@@ -922,6 +964,13 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     Debug.WriteLine($"Handle duplicate filenames updated to: {_settings.HandleDuplicateFilenames}");
                 }
 
+                var autoRenameDuplicatesOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "AutoRenameDuplicates");
+                if (autoRenameDuplicatesOption != null && autoRenameDuplicatesOption.Value != _settings.AutoRenameDuplicates)
+                {
+                    _settings.AutoRenameDuplicates = autoRenameDuplicatesOption.Value;
+                    Debug.WriteLine($"Auto-rename duplicates updated to: {_settings.AutoRenameDuplicates}");
+                }
+
                 var customTemplateOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "CustomFilenameTemplate");
                 if (customTemplateOption != null && customTemplateOption.TextValue != _settings.CustomFilenameTemplate)
                 {
@@ -978,6 +1027,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         public bool EmbedMetadata { get; set; } = true;
         public bool ShowDownloadWindow { get; set; } = false;
         public bool HandleDuplicateFilenames { get; set; } = true;
+        public bool AutoRenameDuplicates { get; set; } = true;
         public string CustomFilenameTemplate { get; set; } = "";
         public bool ShowNotifications { get; set; } = true;
         public bool MinimalNotifications { get; set; } = false;
