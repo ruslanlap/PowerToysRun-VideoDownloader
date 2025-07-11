@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.9] - 2025-07-11
+### 🚀 Performance & Stability
+- **Performance improvements:** Faster download speeds and reduced memory usage
+- **Enhanced error handling:** Better handling of network errors and timeouts
+- **Improved compatibility:** Better support for more video platforms
+
+### 🐛 Bug Fixes
+- Fixed issues with certain video platforms not downloading correctly
+- Fixed memory leaks during long download sessions
+- Improved error reporting with more descriptive messages
+
+### ✨ New Features
+- Added support for more video formats and platforms
+- Improved command-line parameter handling
+- Better integration with PowerToys settings
+
+### 🔧 Technical Improvements
+- All PowerToys Run linting issues resolved (PTRUN1301, PTRUN1303, PTRUN1401, PTRUN1402)
+- Updated dependencies to latest versions
+- Code refactoring for better maintainability
+
 ## [1.0.6] - 2024-06-11
 ### 🐛 Fixed
 - **Settings Save Bug:** Fixed issue where settings for video/audio quality and format were not saved unless the download folder was changed ([#4](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/issues/4)). Now all fields are reliably saved.
