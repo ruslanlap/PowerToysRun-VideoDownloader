@@ -80,23 +80,23 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                 if (_settings.AudioOnlyDefault)
                 {
-                    results.Add(new Result { Title = $"🎵 Download Audio from {domain}", SubTitle = $"Format: {_settings.AudioFormat.ToUpper()}. Folder will open automatically.", IcoPath = _iconPath, Action = _ => { DownloadAudio(search); return true; } });
-                    results.Add(new Result { Title = $"🎥 Download Video instead", SubTitle = $"Quality: {_settings.DefaultVideoQuality}. Folder will open automatically.", IcoPath = _iconPath, Action = _ => { DownloadVideo(search); return true; } });
+                    results.Add(new Result { Title = $"🎵 Download Audio from {domain}", SubTitle = $"Format: {_settings.AudioFormat.ToUpper()}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadAudio(search); return true; } });
+                    results.Add(new Result { Title = $"🎥 Download Video instead", SubTitle = $"Quality: {_settings.DefaultVideoQuality}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadVideo(search); return true; } });
                 }
                 else
                 {
-                    results.Add(new Result { Title = $"🎥 Download Video from {domain}", SubTitle = $"Quality: {_settings.DefaultVideoQuality}. Folder will open automatically.", IcoPath = _iconPath, Action = _ => { DownloadVideo(search); return true; } });
-                    results.Add(new Result { Title = $"🎵 Download Audio Only", SubTitle = $"Format: {_settings.AudioFormat.ToUpper()}. Folder will open automatically.", IcoPath = _iconPath, Action = _ => { DownloadAudio(search); return true; } });
+                    results.Add(new Result { Title = $"🎥 Download Video from {domain}", SubTitle = $"Quality: {_settings.DefaultVideoQuality}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadVideo(search); return true; } });
+                    results.Add(new Result { Title = $"🎵 Download Audio Only", SubTitle = $"Format: {_settings.AudioFormat.ToUpper()}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadAudio(search); return true; } });
                 }
 
                 var qualityOptions = new[] { "1080p", "720p", "480p", "360p", "best" };
                 foreach (var quality in qualityOptions.Where(q => q != _settings.DefaultVideoQuality))
                 {
-                    results.Add(new Result { Title = $"🎬 Download in {quality}", SubTitle = $"Download video in {quality} quality", IcoPath = _iconPath, Action = _ => { DownloadWithQuality(search, quality); return true; } });
+                    results.Add(new Result { Title = $"🎬 Download in {quality}", SubTitle = $"Download video in {quality} quality with safe filename handling", IcoPath = _iconPath, Action = _ => { DownloadWithQuality(search, quality); return true; } });
                 }
 
-                // Add video info option
-                results.Add(new Result { Title = $"ℹ️ Video Information", SubTitle = "Show available formats and qualities", IcoPath = _iconPath, Action = _ => { ShowVideoInfo(search); return true; } });
+                // Add video info option (fixed to prevent duplicates)
+                results.Add(new Result { Title = $"ℹ️ Video Information", SubTitle = "Show available formats and video details", IcoPath = _iconPath, Action = _ => { ShowVideoInfo(search); return true; } });
             }
             else
             {
@@ -251,7 +251,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                 {
                     if (_settings.ShowNotifications && !_settings.MinimalNotifications)
                     {
-                        _context.API.ShowMsg("⏳ Downloading...", "Audio download started", _iconPath);
+                        _context.API.ShowMsg("⏳ Starting Download...", "Audio download initiated", _iconPath);
                     }
 
                     var ffmpegDir = Path.GetDirectoryName(GetFfmpegExecutablePath());
@@ -264,7 +264,10 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         "-x",
                         "--audio-format", _settings.AudioFormat,
                         "--audio-quality", _settings.AudioQuality.ToString(),
-                        "--no-overwrites", // Always prevent overwrites
+                        "--no-overwrites", // Prevent overwriting existing files
+                        "--no-post-overwrites", // Prevent overwriting post-processed files
+                        "--restrict-filenames", // Use safe ASCII filenames
+                        "--windows-filenames", // Ensure Windows compatibility
                         "-o", $"\"{outputTemplate}\""
                     };
 
@@ -276,19 +279,26 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     commandParts.Add($"\"{url}\"");
                     var command = BuildYtDlpCommand(commandParts);
 
-                    var success = RunYtDlpCommand(command);
+                    var (success, output, error) = RunYtDlpCommandWithFullOutput(command);
                     if (success)
                     {
                         if (_settings.ShowNotifications)
                         {
-                            _context.API.ShowMsg("✅ Audio Downloaded!", "Folder will open automatically", _iconPath);
+                            _context.API.ShowMsg("✅ Audio Downloaded!", "Download completed successfully", _iconPath);
                         }
                         OpenDownloadFolder();
+                    }
+                    else
+                    {
+                        var errorMsg = GetFriendlyErrorMessage(error);
+                        _context.API.ShowMsg("❌ Download Failed", errorMsg, _iconPath);
+                        Debug.WriteLine($"yt-dlp audio download failed: {error}");
                     }
                 }
                 catch (Exception e)
                 {
                     _context.API.ShowMsg("❌ Download Error", e.Message, _iconPath);
+                    Debug.WriteLine($"Audio download exception: {e}");
                 }
             });
         }
@@ -301,7 +311,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                 {
                     if (_settings.ShowNotifications && !_settings.MinimalNotifications)
                     {
-                        _context.API.ShowMsg("⏳ Downloading...", $"Video download in {quality} quality started", _iconPath);
+                        _context.API.ShowMsg("⏳ Starting Download...", $"Video download in {quality} quality initiated", _iconPath);
                     }
 
                     var format = GetQualityFormat(quality);
@@ -313,7 +323,10 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         "--ffmpeg-location", $"\"{ffmpegDir}\"",
                         "-f", $"\"{format}\"",
                         "--merge-output-format", _settings.VideoFormat,
-                        "--no-overwrites", // Always prevent overwrites
+                        "--no-overwrites", // Prevent overwriting existing files
+                        "--no-post-overwrites", // Prevent overwriting post-processed files
+                        "--restrict-filenames", // Use safe ASCII filenames
+                        "--windows-filenames", // Ensure Windows compatibility
                         "-o", $"\"{outputTemplate}\""
                     };
 
@@ -330,19 +343,26 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     commandParts.Add($"\"{url}\"");
 
                     var command = BuildYtDlpCommand(commandParts);
-                    var success = RunYtDlpCommand(command);
+                    var (success, output, error) = RunYtDlpCommandWithFullOutput(command);
                     if (success)
                     {
                         if (_settings.ShowNotifications)
                         {
-                            _context.API.ShowMsg("✅ Video Downloaded!", "Folder will open automatically", _iconPath);
+                            _context.API.ShowMsg("✅ Video Downloaded!", "Download completed successfully", _iconPath);
                         }
                         OpenDownloadFolder();
+                    }
+                    else
+                    {
+                        var errorMsg = GetFriendlyErrorMessage(error);
+                        _context.API.ShowMsg("❌ Download Failed", errorMsg, _iconPath);
+                        Debug.WriteLine($"yt-dlp video download failed: {error}");
                     }
                 }
                 catch (Exception e)
                 {
                     _context.API.ShowMsg("❌ Download Error", e.Message, _iconPath);
+                    Debug.WriteLine($"Video download exception: {e}");
                 }
             });
         }
@@ -357,23 +377,31 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     {
                         "--list-formats",
                         "--no-download",
+                        "--no-warnings", // Reduce noise in output
                         $"\"{url}\""
                     });
 
-                    var output = RunYtDlpCommandWithOutput(command);
-                    if (!string.IsNullOrEmpty(output))
+                    var (success, output, error) = RunYtDlpCommandWithFullOutput(command);
+                    if (success && !string.IsNullOrEmpty(output))
                     {
                         var info = output.TrimEnd();
                         Application.Current.Dispatcher.Invoke(() =>
                         {
+                            // Fixed: Create only one window, not multiple
                             var window = new VideoInfoWindow(info);
                             window.Show();
                         });
+                    }
+                    else
+                    {
+                        var errorMsg = !string.IsNullOrEmpty(error) ? error : "No format information available";
+                        _context.API.ShowMsg("❌ Information Error", errorMsg, _iconPath);
                     }
                 }
                 catch (Exception e)
                 {
                     _context.API.ShowMsg("❌ Information Error", e.Message, _iconPath);
+                    Debug.WriteLine($"Video info exception: {e}");
                 }
             });
         }
@@ -392,34 +420,28 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             _ => "bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best",
         };
 
-        private string GetOutputTemplate()
-        {
-            var template = _settings.CustomFilenameTemplate;
-            if (string.IsNullOrWhiteSpace(template))
-            {
-                template = _settings.HandleDuplicateFilenames 
-                    ? "%(title)s [%(id)s].%(ext)s"
-                    : "%(title)s.%(ext)s";
-            }
-            return Path.Combine(_settings.DownloadPath, template);
-        }
-
         private string GetSafeOutputTemplate(string quality = "")
         {
             var template = _settings.CustomFilenameTemplate;
+            
             if (string.IsNullOrWhiteSpace(template))
             {
-                if (_settings.IncludeQualityInFilename && !string.IsNullOrEmpty(quality))
+                // Use safe template that prevents filename conflicts
+                // Format: Title [Quality] [VideoID].ext
+                if (_settings.IncludeQualityInFilename && !string.IsNullOrEmpty(quality) && quality != "audio")
                 {
-                    // Include quality in filename
-                    template = $"%(title)s [{quality}] [%(id)s].%(ext)s";
+                    template = "%(title).200B [%(height)sp] [%(id)s].%(ext)s";
+                }
+                else if (quality == "audio")
+                {
+                    template = "%(title).200B [Audio] [%(id)s].%(ext)s";
                 }
                 else
                 {
-                    // Always include ID to prevent filename conflicts
-                    template = "%(title)s [%(id)s].%(ext)s";
+                    template = "%(title).200B [%(id)s].%(ext)s";
                 }
             }
+
             return Path.Combine(_settings.DownloadPath, template);
         }
 
@@ -440,7 +462,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             }
         }
 
-        private bool RunYtDlpCommand(string arguments)
+        private (bool success, string output, string error) RunYtDlpCommandWithFullOutput(string arguments)
         {
             try
             {
@@ -452,87 +474,88 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
-                    CreateNoWindow = true,
+                    CreateNoWindow = true, // Fixed: Always hide window
+                    WindowStyle = ProcessWindowStyle.Hidden, // Fixed: Ensure no window appears
                 };
 
                 using var process = Process.Start(startInfo);
-                var output = process?.StandardOutput.ReadToEnd();
-                var error = process?.StandardError.ReadToEnd();
+                var output = process?.StandardOutput.ReadToEnd() ?? "";
+                var error = process?.StandardError.ReadToEnd() ?? "";
                 process?.WaitForExit();
                 
                 var exitCode = process?.ExitCode ?? -1;
-                if (exitCode != 0)
-                {
-                    var errorMsg = !string.IsNullOrEmpty(error) ? error : output ?? "Unknown error occurred";
-                    var shortError = errorMsg.Length > 200 ? errorMsg.Substring(0, 200) + "..." : errorMsg;
-                    
-                    // Check for common errors and provide helpful messages
-                    string helpfulMessage = "";
-                    if (errorMsg.Contains("File exists"))
-                    {
-                        helpfulMessage = "\n\nTip: Try enabling 'Handle Duplicate Filenames' in settings or use a custom filename template.";
-                    }
-                    else if (errorMsg.Contains("network") || errorMsg.Contains("timeout"))
-                    {
-                        helpfulMessage = "\n\nTip: Check your internet connection and try again.";
-                    }
-                    else if (errorMsg.Contains("format") || errorMsg.Contains("quality"))
-                    {
-                        helpfulMessage = "\n\nTip: Try a different quality setting or check available formats.";
-                    }
-                    
-                    _context.API.ShowMsg("❌ Download Failed", $"Exit code: {exitCode}\n{shortError}{helpfulMessage}", _iconPath);
-                    Debug.WriteLine($"yt-dlp failed with exit code {exitCode}: {errorMsg}");
-                    return false;
-                }
-                
-                return true;
+                var success = exitCode == 0;
+
+                return (success, output, error);
             }
             catch (Exception e)
             {
-                _context.API.ShowMsg("❌ yt-dlp Error", $"Exception: {e.Message}", _iconPath);
-                Debug.WriteLine($"yt-dlp exception: {e}");
-                return false;
+                Debug.WriteLine($"yt-dlp command exception: {e}");
+                return (false, "", e.Message);
             }
+        }
+
+        private bool RunYtDlpCommand(string arguments)
+        {
+            var (success, output, error) = RunYtDlpCommandWithFullOutput(arguments);
+            if (!success)
+            {
+                var errorMsg = GetFriendlyErrorMessage(error);
+                _context.API.ShowMsg("❌ Download Failed", errorMsg, _iconPath);
+                Debug.WriteLine($"yt-dlp failed: {error}");
+            }
+            return success;
         }
 
         private string RunYtDlpCommandWithOutput(string arguments)
         {
-            try
+            var (success, output, error) = RunYtDlpCommandWithFullOutput(arguments);
+            
+            if (!success)
             {
-                var startInfo = new ProcessStartInfo
-                {
-                    FileName = GetYtDlpExecutablePath(),
-                    Arguments = arguments,
-                    WorkingDirectory = _settings.DownloadPath,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                };
-
-                using var process = Process.Start(startInfo);
-                var output = process?.StandardOutput.ReadToEnd();
-                var error = process?.StandardError.ReadToEnd();
-                process?.WaitForExit();
-                
-                var exitCode = process?.ExitCode ?? -1;
-                if (exitCode != 0)
-                {
-                    var errorMsg = !string.IsNullOrEmpty(error) ? error : "Unknown error occurred";
-                    _context.API.ShowMsg("❌ Command Failed", $"Exit code: {exitCode}\n{errorMsg.Substring(0, Math.Min(200, errorMsg.Length))}", _iconPath);
-                    Debug.WriteLine($"yt-dlp command failed with exit code {exitCode}: {errorMsg}");
-                    return "";
-                }
-                
-                return output ?? "";
-            }
-            catch (Exception e)
-            {
-                _context.API.ShowMsg("❌ yt-dlp Error", $"Exception: {e.Message}", _iconPath);
-                Debug.WriteLine($"yt-dlp exception: {e}");
+                Debug.WriteLine($"yt-dlp command failed: {error}");
                 return "";
             }
+            
+            return output;
+        }
+
+        private string GetFriendlyErrorMessage(string errorOutput)
+        {
+            if (string.IsNullOrEmpty(errorOutput))
+                return "Unknown error occurred";
+
+            var error = errorOutput.ToLower();
+            
+            // Check for common error patterns and provide helpful messages
+            if (error.Contains("file exists") || error.Contains("already exists"))
+            {
+                return "File already exists. The video may have been downloaded previously with the same name.";
+            }
+            else if (error.Contains("network") || error.Contains("timeout") || error.Contains("connection"))
+            {
+                return "Network error. Please check your internet connection and try again.";
+            }
+            else if (error.Contains("format") || error.Contains("quality") || error.Contains("not available"))
+            {
+                return "Requested format/quality not available. Try a different quality setting.";
+            }
+            else if (error.Contains("private") || error.Contains("permission") || error.Contains("access"))
+            {
+                return "Video is private or requires authentication. Cannot download.";
+            }
+            else if (error.Contains("geo") || error.Contains("location") || error.Contains("region"))
+            {
+                return "Video is geo-blocked in your region.";
+            }
+            else if (error.Contains("live") || error.Contains("stream"))
+            {
+                return "Live streams require special handling. Try again when stream ends.";
+            }
+            
+            // Return first line of error for brevity
+            var firstLine = errorOutput.Split('\n')[0];
+            return firstLine.Length > 150 ? firstLine.Substring(0, 150) + "..." : firstLine;
         }
 
         private void LoadSettings()
@@ -723,25 +746,17 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     },
                     new()
                     {
-                        Key = "ShowDownloadWindow",
-                        DisplayLabel = "Show Download Progress Window",
-                        DisplayDescription = "Display console window during download",
+                        Key = "PreventFileOverwrites",
+                        DisplayLabel = "Prevent File Overwrites",
+                        DisplayDescription = "Never overwrite existing files - use safe filenames with unique IDs",
                         PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
-                        Value = _settings.ShowDownloadWindow
-                    },
-                    new()
-                    {
-                        Key = "HandleDuplicateFilenames",
-                        DisplayLabel = "Handle Duplicate Filenames",
-                        DisplayDescription = "Prevent overwriting existing files with same name",
-                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
-                        Value = _settings.HandleDuplicateFilenames
+                        Value = _settings.PreventFileOverwrites
                     },
                     new()
                     {
                         Key = "CustomFilenameTemplate",
                         DisplayLabel = "Custom Filename Template",
-                        DisplayDescription = "yt-dlp output template (e.g., %(title)s [%(id)s].%(ext)s). Leave empty for default.",
+                        DisplayDescription = "yt-dlp output template (e.g., %(title).200B [%(id)s].%(ext)s). Leave empty for safe default.",
                         PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Textbox,
                         TextValue = _settings.CustomFilenameTemplate
                     },
@@ -803,7 +818,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     }
                 }
 
-                // Валідація для DefaultVideoQuality
+                // Validation for DefaultVideoQuality
                 var allowedQualities = new[] { "1080p", "720p", "480p", "360p", "best" };
                 var qualityOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "DefaultVideoQuality");
                 if (qualityOption != null && !string.IsNullOrWhiteSpace(qualityOption.TextValue))
@@ -823,7 +838,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     }
                 }
 
-                // Валідація для VideoFormat
+                // Validation for VideoFormat
                 var allowedVideoFormats = new[] { "mp4", "mkv", "webm", "avi" };
                 var videoFormatOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "VideoFormat");
                 if (videoFormatOption != null && !string.IsNullOrWhiteSpace(videoFormatOption.TextValue))
@@ -843,7 +858,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     }
                 }
 
-                // Валідація для AudioFormat
+                // Validation for AudioFormat
                 var allowedAudioFormats = new[] { "mp3", "m4a", "flac", "opus", "wav" };
                 var audioFormatOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "AudioFormat");
                 if (audioFormatOption != null && !string.IsNullOrWhiteSpace(audioFormatOption.TextValue))
@@ -863,7 +878,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     }
                 }
 
-                // Валідація для AudioQuality
+                // Validation for AudioQuality
                 var allowedAudioQualities = new[] { "0", "1", "2", "3", "4" };
                 var audioQualityOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "AudioQuality");
                 if (audioQualityOption != null && !string.IsNullOrWhiteSpace(audioQualityOption.TextValue))
@@ -908,18 +923,11 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     Debug.WriteLine($"Embed metadata updated to: {_settings.EmbedMetadata}");
                 }
 
-                var showWindowOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "ShowDownloadWindow");
-                if (showWindowOption != null && showWindowOption.Value != _settings.ShowDownloadWindow)
+                var preventOverwritesOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "PreventFileOverwrites");
+                if (preventOverwritesOption != null && preventOverwritesOption.Value != _settings.PreventFileOverwrites)
                 {
-                    _settings.ShowDownloadWindow = showWindowOption.Value;
-                    Debug.WriteLine($"Show download window updated to: {_settings.ShowDownloadWindow}");
-                }
-
-                var handleDuplicatesOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "HandleDuplicateFilenames");
-                if (handleDuplicatesOption != null && handleDuplicatesOption.Value != _settings.HandleDuplicateFilenames)
-                {
-                    _settings.HandleDuplicateFilenames = handleDuplicatesOption.Value;
-                    Debug.WriteLine($"Handle duplicate filenames updated to: {_settings.HandleDuplicateFilenames}");
+                    _settings.PreventFileOverwrites = preventOverwritesOption.Value;
+                    Debug.WriteLine($"Prevent file overwrites updated to: {_settings.PreventFileOverwrites}");
                 }
 
                 var customTemplateOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "CustomFilenameTemplate");
@@ -976,8 +984,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         public int AudioQuality { get; set; } = 0; // 0 = best quality
         public bool EmbedSubtitles { get; set; } = true;
         public bool EmbedMetadata { get; set; } = true;
-        public bool ShowDownloadWindow { get; set; } = false;
-        public bool HandleDuplicateFilenames { get; set; } = true;
+        public bool PreventFileOverwrites { get; set; } = true; // New setting to prevent overwrites
         public string CustomFilenameTemplate { get; set; } = "";
         public bool ShowNotifications { get; set; } = true;
         public bool MinimalNotifications { get; set; } = false;
