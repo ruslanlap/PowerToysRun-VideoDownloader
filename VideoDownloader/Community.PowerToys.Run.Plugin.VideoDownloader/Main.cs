@@ -80,22 +80,22 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                 if (_settings.AudioOnlyDefault)
                 {
-                    results.Add(new Result { Title = $"🎵 Download Audio from {domain}", SubTitle = $"Format: {_settings.AudioFormat.ToUpper()}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadAudio(search); return true; } });
-                    results.Add(new Result { Title = $"🎥 Download Video instead", SubTitle = $"Quality: {_settings.DefaultVideoQuality}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadVideo(search); return true; } });
+                    results.Add(new Result { Title = $"🎵 Download Audio from {domain}", SubTitle = $"Format: {_settings.AudioFormat.ToUpper()}. Unique filename with ID to prevent conflicts.", IcoPath = _iconPath, Action = _ => { DownloadAudio(search); return true; } });
+                    results.Add(new Result { Title = $"🎥 Download Video instead", SubTitle = $"Quality: {_settings.DefaultVideoQuality}. Unique filename with ID to prevent conflicts.", IcoPath = _iconPath, Action = _ => { DownloadVideo(search); return true; } });
                 }
                 else
                 {
-                    results.Add(new Result { Title = $"🎥 Download Video from {domain}", SubTitle = $"Quality: {_settings.DefaultVideoQuality}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadVideo(search); return true; } });
-                    results.Add(new Result { Title = $"🎵 Download Audio Only", SubTitle = $"Format: {_settings.AudioFormat.ToUpper()}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadAudio(search); return true; } });
+                    results.Add(new Result { Title = $"🎥 Download Video from {domain}", SubTitle = $"Quality: {_settings.DefaultVideoQuality}. Unique filename with ID to prevent conflicts.", IcoPath = _iconPath, Action = _ => { DownloadVideo(search); return true; } });
+                    results.Add(new Result { Title = $"🎵 Download Audio Only", SubTitle = $"Format: {_settings.AudioFormat.ToUpper()}. Unique filename with ID to prevent conflicts.", IcoPath = _iconPath, Action = _ => { DownloadAudio(search); return true; } });
                 }
 
                 var qualityOptions = new[] { "1080p", "720p", "480p", "360p", "best" };
                 foreach (var quality in qualityOptions.Where(q => q != _settings.DefaultVideoQuality))
                 {
-                    results.Add(new Result { Title = $"🎬 Download in {quality}", SubTitle = $"Download video in {quality} quality with safe filename handling", IcoPath = _iconPath, Action = _ => { DownloadWithQuality(search, quality); return true; } });
+                    results.Add(new Result { Title = $"🎬 Download in {quality}", SubTitle = $"Download video in {quality} quality with unique filename", IcoPath = _iconPath, Action = _ => { DownloadWithQuality(search, quality); return true; } });
                 }
 
-                // Add video info option (fixed to prevent duplicates)
+                // Fixed: Only add video info option once
                 results.Add(new Result { Title = $"ℹ️ Video Information", SubTitle = "Show available formats and video details", IcoPath = _iconPath, Action = _ => { ShowVideoInfo(search); return true; } });
             }
             else
@@ -202,9 +202,9 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                 // Test the new version
                 var testCommand = "--version";
-                var versionOutput = RunYtDlpCommandWithOutput(testCommand);
+                var (success, versionOutput, error) = RunYtDlpCommandWithFullOutput(testCommand);
                 
-                if (!string.IsNullOrEmpty(versionOutput))
+                if (success && !string.IsNullOrEmpty(versionOutput))
                 {
                     _context.API.ShowMsg("✅ yt-dlp Updated!", $"Version: {versionOutput.Trim()}", _iconPath);
                     if (File.Exists(backupPath))
@@ -279,21 +279,8 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     commandParts.Add($"\"{url}\"");
                     var command = BuildYtDlpCommand(commandParts);
 
-                    var (success, output, error) = RunYtDlpCommandWithFullOutput(command);
-                    if (success)
-                    {
-                        if (_settings.ShowNotifications)
-                        {
-                            _context.API.ShowMsg("✅ Audio Downloaded!", "Download completed successfully", _iconPath);
-                        }
-                        OpenDownloadFolder();
-                    }
-                    else
-                    {
-                        var errorMsg = GetFriendlyErrorMessage(error);
-                        _context.API.ShowMsg("❌ Download Failed", errorMsg, _iconPath);
-                        Debug.WriteLine($"yt-dlp audio download failed: {error}");
-                    }
+                    // Use visible error handling method
+                    RunYtDlpCommandVisibleOnError(command);
                 }
                 catch (Exception e)
                 {
@@ -343,21 +330,9 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     commandParts.Add($"\"{url}\"");
 
                     var command = BuildYtDlpCommand(commandParts);
-                    var (success, output, error) = RunYtDlpCommandWithFullOutput(command);
-                    if (success)
-                    {
-                        if (_settings.ShowNotifications)
-                        {
-                            _context.API.ShowMsg("✅ Video Downloaded!", "Download completed successfully", _iconPath);
-                        }
-                        OpenDownloadFolder();
-                    }
-                    else
-                    {
-                        var errorMsg = GetFriendlyErrorMessage(error);
-                        _context.API.ShowMsg("❌ Download Failed", errorMsg, _iconPath);
-                        Debug.WriteLine($"yt-dlp video download failed: {error}");
-                    }
+                    
+                    // Use visible error handling method
+                    RunYtDlpCommandVisibleOnError(command);
                 }
                 catch (Exception e)
                 {
@@ -385,17 +360,29 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     if (success && !string.IsNullOrEmpty(output))
                     {
                         var info = output.TrimEnd();
-                        Application.Current.Dispatcher.Invoke(() =>
+                        
+                        // Use safer approach - show info in CMD window instead of WPF window to avoid issues
+                        var startInfo = new ProcessStartInfo
                         {
-                            // Fixed: Create only one window, not multiple
-                            var window = new VideoInfoWindow(info);
-                            window.Show();
-                        });
+                            FileName = "cmd.exe",
+                            Arguments = $"/c echo Video Information: && echo. && echo {info.Replace("\"", "\"\"")} && echo. && echo Press any key to close... && pause",
+                            UseShellExecute = true,
+                            CreateNoWindow = false
+                        };
+                        Process.Start(startInfo);
                     }
                     else
                     {
+                        // Show error in visible window
                         var errorMsg = !string.IsNullOrEmpty(error) ? error : "No format information available";
-                        _context.API.ShowMsg("❌ Information Error", errorMsg, _iconPath);
+                        var startInfo = new ProcessStartInfo
+                        {
+                            FileName = "cmd.exe",
+                            Arguments = $"/c echo Video Information Error: && echo {errorMsg.Replace("\"", "\"\"")} && echo. && echo Press any key to close... && pause",
+                            UseShellExecute = true,
+                            CreateNoWindow = false
+                        };
+                        Process.Start(startInfo);
                     }
                 }
                 catch (Exception e)
@@ -426,19 +413,22 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             
             if (string.IsNullOrWhiteSpace(template))
             {
-                // Use safe template that prevents filename conflicts
-                // Format: Title [Quality] [VideoID].ext
+                // Enhanced safe template that prevents filename conflicts
+                // Format: Title [Quality] [VideoID].ext or Title [Audio] [VideoID].ext
                 if (_settings.IncludeQualityInFilename && !string.IsNullOrEmpty(quality) && quality != "audio")
                 {
-                    template = "%(title).200B [%(height)sp] [%(id)s].%(ext)s";
+                    // Include quality and unique video ID to prevent conflicts
+                    template = "%(title).150B [%(height)sp] [%(id)s].%(ext)s";
                 }
                 else if (quality == "audio")
                 {
-                    template = "%(title).200B [Audio] [%(id)s].%(ext)s";
+                    // For audio downloads, always include video ID to prevent conflicts
+                    template = "%(title).150B [Audio] [%(id)s].%(ext)s";
                 }
                 else
                 {
-                    template = "%(title).200B [%(id)s].%(ext)s";
+                    // Default with video ID to prevent conflicts from same channel
+                    template = "%(title).150B [%(id)s].%(ext)s";
                 }
             }
 
@@ -474,8 +464,8 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
-                    CreateNoWindow = true, // Fixed: Always hide window
-                    WindowStyle = ProcessWindowStyle.Hidden, // Fixed: Ensure no window appears
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden,
                 };
 
                 using var process = Process.Start(startInfo);
@@ -495,29 +485,58 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             }
         }
 
-        private bool RunYtDlpCommand(string arguments)
+        // Add method for running commands with visible window (for error display)
+        private void RunYtDlpCommandVisibleOnError(string arguments)
         {
-            var (success, output, error) = RunYtDlpCommandWithFullOutput(arguments);
-            if (!success)
-            {
-                var errorMsg = GetFriendlyErrorMessage(error);
-                _context.API.ShowMsg("❌ Download Failed", errorMsg, _iconPath);
-                Debug.WriteLine($"yt-dlp failed: {error}");
-            }
-            return success;
-        }
+            var ytDlpPath = GetYtDlpExecutablePath();
 
-        private string RunYtDlpCommandWithOutput(string arguments)
-        {
-            var (success, output, error) = RunYtDlpCommandWithFullOutput(arguments);
-            
-            if (!success)
+            try
             {
-                Debug.WriteLine($"yt-dlp command failed: {error}");
-                return "";
+                // First try hidden execution
+                var (success, output, error) = RunYtDlpCommandWithFullOutput(arguments);
+                
+                if (success)
+                {
+                    if (_settings.ShowNotifications)
+                    {
+                        _context.API.ShowMsg("✅ Download Complete!", "File saved successfully", _iconPath);
+                    }
+                    OpenDownloadFolder();
+                }
+                else
+                {
+                    // If failed, show error in visible CMD window like v1.0.5
+                    var startInfo = new ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = $"/c echo Download failed. Error details: && echo. && \"{ytDlpPath}\" {arguments} && echo. && echo Press any key to close... && pause",
+                        UseShellExecute = true,
+                        CreateNoWindow = false,
+                        WorkingDirectory = _settings.DownloadPath
+                    };
+                    Process.Start(startInfo);
+                }
             }
-            
-            return output;
+            catch
+            {
+                // Fallback to visible cmd execution
+                try
+                {
+                    var startInfo = new ProcessStartInfo
+                    {
+                        FileName = "cmd.exe", 
+                        Arguments = $"/c \"{ytDlpPath}\" {arguments} && pause",
+                        UseShellExecute = true,
+                        CreateNoWindow = false,
+                        WorkingDirectory = _settings.DownloadPath
+                    };
+                    Process.Start(startInfo);
+                }
+                catch
+                {
+                    _context.API.ShowMsg("❌ Download Error", "Failed to start download process", _iconPath);
+                }
+            }
         }
 
         private string GetFriendlyErrorMessage(string errorOutput)
