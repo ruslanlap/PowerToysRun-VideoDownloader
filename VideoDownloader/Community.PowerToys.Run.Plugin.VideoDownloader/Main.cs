@@ -96,8 +96,8 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     results.Add(new Result { Title = $"🎬 Download in {quality}", SubTitle = $"Download video in {quality} quality with safe filename handling", IcoPath = _iconPath, Action = _ => { DownloadWithQuality(search, quality); return true; } });
                 }
 
-                // Add video info option (fixed to prevent duplicates)
-                results.Add(new Result { Title = $"ℹ️ Video Information", SubTitle = "Show available formats and video details", IcoPath = _iconPath, Action = _ => { ShowVideoInfo(search); return true; } });
+                // Only show video info once - removed duplicate logic
+                results.Add(new Result { Title = $"ℹ️ Show Available Formats", SubTitle = "Display all available video/audio formats", IcoPath = _iconPath, Action = _ => { ShowVideoFormats(search); return true; } });
             }
             else
             {
@@ -267,8 +267,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         "-x",
                         "--audio-format", _settings.AudioFormat,
                         "--audio-quality", _settings.AudioQuality.ToString(),
-                        _settings.PreventFileOverwrites ? "--no-overwrites" : "", // Prevent overwriting existing files
-                        _settings.PreventFileOverwrites ? "--no-post-overwrites" : "", // Prevent overwriting post-processed files
+                        "--no-overwrites", // Always prevent overwriting - this fixes filename conflicts
                         "--restrict-filenames", // Use safe ASCII filenames
                         "--windows-filenames", // Ensure Windows compatibility
                         "-o", $"\"{outputTemplate}\""
@@ -282,27 +281,17 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     commandParts.Add($"\"{url}\"");
                     var command = BuildYtDlpCommand(commandParts);
 
-                    // Show window based on user setting
-                    var (success, output, error) = RunYtDlpCommandWithFullOutput(command, showWindow: _settings.ShowCommandWindow);
+                    Debug.WriteLine($"Audio download - Command: {command}");
                     
-                    if (_settings.ShowNotifications)
+                    // Always show CMD window like v1.05 - this fixes error visibility
+                    var success = RunYtDlpCommandVisible(command);
+                    
+                    Debug.WriteLine($"Audio download - Success: {success}, AutoOpenFolder: {_settings.AutoOpenFolder}");
+                    
+                    if (success && _settings.AutoOpenFolder)
                     {
-                        if (success)
-                        {
-                            _context.API.ShowMsg("✅ Audio Downloaded!", "Download completed successfully", _iconPath);
-                            if (_settings.AutoOpenFolder)
-                            {
-                                OpenDownloadFolder();
-                            }
-                        }
-                        else
-                        {
-                            _context.API.ShowMsg("❌ Download Failed", "Check the command window for details", _iconPath);
-                        }
-                    }
-                    else if (success && _settings.AutoOpenFolder)
-                    {
-                        OpenDownloadFolder();
+                        Debug.WriteLine("Auto-opening folder after successful audio download");
+                        Task.Delay(1000).ContinueWith(_ => OpenDownloadFolder()); // Small delay to ensure file is written
                     }
                 }
                 catch (Exception e)
@@ -335,8 +324,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         File.Exists(ffmpegPath) ? $"\"{ffmpegDir}\"" : "",
                         "-f", $"\"{format}\"",
                         "--merge-output-format", _settings.VideoFormat,
-                        _settings.PreventFileOverwrites ? "--no-overwrites" : "", // Prevent overwriting existing files
-                        _settings.PreventFileOverwrites ? "--no-post-overwrites" : "", // Prevent overwriting post-processed files
+                        "--no-overwrites", // Always prevent overwriting - this fixes filename conflicts
                         "--restrict-filenames", // Use safe ASCII filenames
                         "--windows-filenames", // Ensure Windows compatibility
                         "-o", $"\"{outputTemplate}\""
@@ -356,27 +344,17 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
                     var command = BuildYtDlpCommand(commandParts);
                     
-                    // Show window based on user setting
-                    var (success, output, error) = RunYtDlpCommandWithFullOutput(command, showWindow: _settings.ShowCommandWindow);
+                    Debug.WriteLine($"Video download - Command: {command}");
                     
-                    if (_settings.ShowNotifications)
+                    // Always show CMD window like v1.05 - this fixes error visibility  
+                    var success = RunYtDlpCommandVisible(command);
+                    
+                    Debug.WriteLine($"Video download - Success: {success}, AutoOpenFolder: {_settings.AutoOpenFolder}");
+                    
+                    if (success && _settings.AutoOpenFolder)
                     {
-                        if (success)
-                        {
-                            _context.API.ShowMsg("✅ Video Downloaded!", "Download completed successfully", _iconPath);
-                            if (_settings.AutoOpenFolder)
-                            {
-                                OpenDownloadFolder();
-                            }
-                        }
-                        else
-                        {
-                            _context.API.ShowMsg("❌ Download Failed", "Check the command window for details", _iconPath);
-                        }
-                    }
-                    else if (success && _settings.AutoOpenFolder)
-                    {
-                        OpenDownloadFolder();
+                        Debug.WriteLine("Auto-opening folder after successful video download");
+                        Task.Delay(1000).ContinueWith(_ => OpenDownloadFolder()); // Small delay to ensure file is written
                     }
                 }
                 catch (Exception e)
@@ -387,7 +365,8 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             });
         }
 
-        private void ShowVideoInfo(string url)
+        // Renamed from ShowVideoInfo to avoid confusion and simplified
+        private void ShowVideoFormats(string url)
         {
             Task.Run(() =>
             {
@@ -397,33 +376,13 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     {
                         "--list-formats",
                         "--no-download",
-                        "--no-warnings", // Reduce noise in output
                         $"\"{url}\""
                     });
 
-                    var (success, output, error) = RunYtDlpCommandWithFullOutput(command);
-                    if (success && !string.IsNullOrEmpty(output))
-                    {
-                        var info = output.TrimEnd();
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            // Close existing window if open
-                            if (_currentInfoWindow != null && _currentInfoWindow.IsLoaded)
-                            {
-                                _currentInfoWindow.Close();
-                            }
-                            
-                            // Create new window and keep reference
-                            _currentInfoWindow = new VideoInfoWindow(info);
-                            _currentInfoWindow.Closed += (s, e) => _currentInfoWindow = null;
-                            _currentInfoWindow.Show();
-                        });
-                    }
-                    else
-                    {
-                        var errorMsg = !string.IsNullOrEmpty(error) ? error : "No format information available";
-                        _context.API.ShowMsg("❌ Information Error", errorMsg, _iconPath);
-                    }
+                    Debug.WriteLine($"Show formats - Command: {command}");
+                    
+                    // Always show in visible CMD window like v1.05
+                    RunYtDlpCommandVisible(command);
                 }
                 catch (Exception e)
                 {
@@ -453,52 +412,99 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             
             if (string.IsNullOrWhiteSpace(template))
             {
-                // Build filename template based on settings
-                var titlePart = "%(title).200B";
+                // Enhanced filename template with conflict resolution
+                var titlePart = "%(title).100B"; // Shorter title to avoid long paths
                 var qualityPart = "";
                 var idPart = "";
+                var datePart = "";
                 
                 if (_settings.IncludeQualityInFilename && !string.IsNullOrEmpty(quality) && quality != "audio")
                 {
-                    qualityPart = " [%(height)sp]";
+                    qualityPart = "_[%(height)sp]";
                 }
                 else if (quality == "audio")
                 {
-                    qualityPart = " [Audio]";
+                    qualityPart = "_[Audio]";
                 }
                 
+                // Always include video ID to prevent conflicts - this was missing in v1.08
                 if (_settings.UseVideoIdInFilename)
                 {
-                    idPart = " [%(id)s]";
+                    idPart = "_[%(id)s]";
                 }
-                
-                // If user wants to prevent overwrites but not use video ID, add timestamp
-                if (_settings.PreventFileOverwrites && !_settings.UseVideoIdInFilename)
+                else
                 {
+                    // If user doesn't want video ID, use date+time for uniqueness
                     var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                    idPart = $" [{timestamp}]";
+                    datePart = $"_{timestamp}";
                 }
                 
-                template = $"{titlePart}{qualityPart}{idPart}.%(ext)s";
+                // Build safe template that prevents conflicts
+                template = $"{titlePart}{qualityPart}{idPart}{datePart}.%(ext)s";
             }
 
-            return Path.Combine(_settings.DownloadPath, template);
+            var fullPath = Path.Combine(_settings.DownloadPath, template);
+            Debug.WriteLine($"Output template: {fullPath}");
+            return fullPath;
         }
 
         private void OpenDownloadFolder()
         {
             try
             {
+                Debug.WriteLine($"OpenDownloadFolder called - Path: {_settings.DownloadPath}");
+                
                 if (!Directory.Exists(_settings.DownloadPath))
                 {
+                    Debug.WriteLine("Download directory doesn't exist, creating it");
                     Directory.CreateDirectory(_settings.DownloadPath);
                 }
-                Process.Start(new ProcessStartInfo { FileName = _settings.DownloadPath, UseShellExecute = true });
+                
+                Debug.WriteLine("Starting explorer process");
+                var processInfo = new ProcessStartInfo 
+                { 
+                    FileName = _settings.DownloadPath, 
+                    UseShellExecute = true 
+                };
+                
+                var process = Process.Start(processInfo);
+                if (process != null)
+                {
+                    Debug.WriteLine("Successfully started explorer process");
+                }
+                else
+                {
+                    Debug.WriteLine("Failed to start explorer process - returned null");
+                    // Alternative method using explorer.exe directly
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "explorer.exe",
+                        Arguments = $"\"{_settings.DownloadPath}\"",
+                        UseShellExecute = true
+                    });
+                }
             }
             catch (Exception e)
             {
                 Debug.WriteLine($"Failed to open download folder: {e.Message}");
-                _context.API.ShowMsg("❌ Cannot Open Folder", e.Message, _iconPath);
+                Debug.WriteLine($"Stack trace: {e.StackTrace}");
+                _context.API.ShowMsg("❌ Cannot Open Folder", $"Path: {_settings.DownloadPath}\nError: {e.Message}", _iconPath);
+                
+                // Try alternative method with explorer.exe
+                try
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = "explorer.exe",
+                        Arguments = $"\"{_settings.DownloadPath}\"",
+                        UseShellExecute = true
+                    });
+                    Debug.WriteLine("Successfully opened folder using explorer.exe fallback");
+                }
+                catch (Exception fallbackException)
+                {
+                    Debug.WriteLine($"Fallback method also failed: {fallbackException.Message}");
+                }
             }
         }
 
@@ -562,6 +568,44 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             {
                 Debug.WriteLine($"yt-dlp command exception: {e}");
                 return (false, "", e.Message);
+            }
+        }
+
+        // Simplified command execution - always visible like v1.05
+        private bool RunYtDlpCommandVisible(string arguments)
+        {
+            try
+            {
+                Debug.WriteLine($"Running yt-dlp command: {arguments}");
+                
+                // Simple, reliable execution like v1.05 - always show window
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "cmd.exe",
+                    Arguments = $"/k \"\"{GetYtDlpExecutablePath()}\" {arguments}\"",
+                    WorkingDirectory = _settings.DownloadPath,
+                    UseShellExecute = true,
+                    CreateNoWindow = false,
+                    WindowStyle = ProcessWindowStyle.Normal
+                };
+
+                var process = Process.Start(startInfo);
+                if (process != null)
+                {
+                    Debug.WriteLine("Successfully started yt-dlp process with visible window");
+                    return true;
+                }
+                else
+                {
+                    Debug.WriteLine("Failed to start yt-dlp process");
+                    return false;
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"yt-dlp command exception: {e}");
+                _context.API.ShowMsg("❌ Command Failed", $"Failed to run yt-dlp: {e.Message}", _iconPath);
+                return false;
             }
         }
 
