@@ -24,7 +24,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-options: '--depth=1'  # Shallow clone for faster checkout
+          fetch-depth: 1  # Shallow clone for faster checkout
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -128,7 +128,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-options: '--depth=1'
+          fetch-depth: 1
 
       - name: Get version from tag
         id: get_version
