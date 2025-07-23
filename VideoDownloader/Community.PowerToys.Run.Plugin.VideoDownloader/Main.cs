@@ -460,26 +460,33 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     Directory.CreateDirectory(_settings.DownloadPath);
                 }
                 
-                Debug.WriteLine("Starting explorer process");
+                // Smart folder opening - check if folder is already open and activate it
+                if (TryActivateExistingExplorerWindow(_settings.DownloadPath))
+                {
+                    Debug.WriteLine("Successfully activated existing Explorer window/tab");
+                    return;
+                }
+                
+                Debug.WriteLine("No existing window found, opening new Explorer window");
                 var processInfo = new ProcessStartInfo 
                 { 
-                    FileName = _settings.DownloadPath, 
+                    FileName = "explorer.exe",
+                    Arguments = $"\"{_settings.DownloadPath}\"",
                     UseShellExecute = true 
                 };
                 
                 var process = Process.Start(processInfo);
                 if (process != null)
                 {
-                    Debug.WriteLine("Successfully started explorer process");
+                    Debug.WriteLine("Successfully started new Explorer process");
                 }
                 else
                 {
-                    Debug.WriteLine("Failed to start explorer process - returned null");
-                    // Alternative method using explorer.exe directly
+                    Debug.WriteLine("Failed to start Explorer process - trying fallback");
+                    // Fallback method
                     Process.Start(new ProcessStartInfo
                     {
-                        FileName = "explorer.exe",
-                        Arguments = $"\"{_settings.DownloadPath}\"",
+                        FileName = _settings.DownloadPath,
                         UseShellExecute = true
                     });
                 }
@@ -506,6 +513,105 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     Debug.WriteLine($"Fallback method also failed: {fallbackException.Message}");
                 }
             }
+        }
+
+        private bool TryActivateExistingExplorerWindow(string targetPath)
+        {
+            try
+            {
+                // Normalize the path for comparison
+                var normalizedTargetPath = Path.GetFullPath(targetPath).TrimEnd('\\').ToLowerInvariant();
+                Debug.WriteLine($"Looking for existing Explorer windows with path: {normalizedTargetPath}");
+
+                // Use PowerShell to find and activate existing Explorer windows
+                var script = $@"
+                    $targetPath = '{normalizedTargetPath.Replace("'", "''")}'
+                    
+                    # Get all Explorer windows
+                    $shell = New-Object -ComObject Shell.Application
+                    $windows = $shell.Windows()
+                    
+                    foreach ($window in $windows) {{
+                        try {{
+                            if ($window.Name -eq 'Windows Explorer' -or $window.Name -eq 'File Explorer') {{
+                                $currentPath = $window.LocationURL
+                                if ($currentPath -like 'file:///*') {{
+                                    # Convert file:/// URL to local path
+                                    $localPath = [System.Uri]::UnescapeDataString($currentPath) -replace '^file:///', '' -replace '/', '\'
+                                    $localPath = $localPath.ToLower().TrimEnd('\')
+                                    
+                                    if ($localPath -eq $targetPath) {{
+                                        # Found matching window - activate it
+                                        $window.Visible = $true
+                                        
+                                        # Get the window handle and bring to front
+                                        $hwnd = $window.HWND
+                                        Add-Type -TypeDefinition @'
+                                            using System;
+                                            using System.Runtime.InteropServices;
+                                            public class Win32 {{
+                                                [DllImport(""user32.dll"")]
+                                                public static extern bool SetForegroundWindow(IntPtr hWnd);
+                                                [DllImport(""user32.dll"")]
+                                                public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+                                                [DllImport(""user32.dll"")]
+                                                public static extern bool IsIconic(IntPtr hWnd);
+                                            }}
+'@
+                                        
+                                        # Restore if minimized
+                                        if ([Win32]::IsIconic([IntPtr]$hwnd)) {{
+                                            [Win32]::ShowWindow([IntPtr]$hwnd, 9) # SW_RESTORE
+                                        }}
+                                        
+                                        # Bring to foreground
+                                        [Win32]::SetForegroundWindow([IntPtr]$hwnd)
+                                        
+                                        Write-Output 'ACTIVATED'
+                                        exit 0
+                                    }}
+                                }}
+                            }}
+                        }} catch {{
+                            # Ignore errors for individual windows
+                        }}
+                    }}
+                    
+                    Write-Output 'NOT_FOUND'
+                ";
+
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = "powershell.exe",
+                    Arguments = $"-WindowStyle Hidden -ExecutionPolicy Bypass -Command \"{script}\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                };
+
+                using var process = Process.Start(startInfo);
+                if (process != null)
+                {
+                    var output = process.StandardOutput.ReadToEnd().Trim();
+                    var error = process.StandardError.ReadToEnd().Trim();
+                    process.WaitForExit(5000); // 5 second timeout
+
+                    if (!string.IsNullOrEmpty(error))
+                    {
+                        Debug.WriteLine($"PowerShell error: {error}");
+                    }
+
+                    Debug.WriteLine($"PowerShell result: {output}");
+                    return output == "ACTIVATED";
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"Failed to check for existing Explorer windows: {e.Message}");
+            }
+
+            return false;
         }
 
         private (bool success, string output, string error) RunYtDlpCommandWithFullOutput(string arguments, bool showWindow = false)
@@ -571,18 +677,40 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             }
         }
 
-        // Simplified command execution - always visible like v1.05
+        // Simplified command execution - smart progress display
         private bool RunYtDlpCommandVisible(string arguments)
         {
             try
             {
                 Debug.WriteLine($"Running yt-dlp command: {arguments}");
                 
-                // Simple, reliable execution like v1.05 - always show window
+                if (_settings.ShowCommandWindow)
+                {
+                    // Show CMD window for debugging/advanced users
+                    return RunYtDlpInTerminal(arguments);
+                }
+                else
+                {
+                    // Run hidden and show progress via PowerToys notifications (default)
+                    return RunYtDlpWithNotifications(arguments);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"yt-dlp command exception: {e}");
+                _context.API.ShowMsg("❌ Command Failed", $"Failed to run yt-dlp: {e.Message}", _iconPath);
+                return false;
+            }
+        }
+
+        private bool RunYtDlpInTerminal(string arguments)
+        {
+            try
+            {
                 var startInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
-                    Arguments = $"/k \"\"{GetYtDlpExecutablePath()}\" {arguments}\"",
+                    Arguments = $"/c echo PowerToys Video Downloader && echo. && \"{GetYtDlpExecutablePath()}\" {arguments} && echo. && echo Download completed! Press any key to close... && pause > nul",
                     WorkingDirectory = _settings.DownloadPath,
                     UseShellExecute = true,
                     CreateNoWindow = false,
@@ -603,10 +731,72 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             }
             catch (Exception e)
             {
-                Debug.WriteLine($"yt-dlp command exception: {e}");
-                _context.API.ShowMsg("❌ Command Failed", $"Failed to run yt-dlp: {e.Message}", _iconPath);
+                Debug.WriteLine($"Terminal execution failed: {e.Message}");
                 return false;
             }
+        }
+
+        private bool RunYtDlpWithNotifications(string arguments)
+        {
+            return Task.Run(() =>
+            {
+                try
+                {
+                    if (_settings.ShowNotifications)
+                    {
+                        _context.API.ShowMsg("⏳ Downloading...", "Starting video download", _iconPath);
+                    }
+
+                    var startInfo = new ProcessStartInfo
+                    {
+                        FileName = GetYtDlpExecutablePath(),
+                        Arguments = arguments,
+                        WorkingDirectory = _settings.DownloadPath,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                        WindowStyle = ProcessWindowStyle.Hidden
+                    };
+
+                    using var process = Process.Start(startInfo);
+                    if (process != null)
+                    {
+                        var output = process.StandardOutput.ReadToEnd();
+                        var error = process.StandardError.ReadToEnd();
+                        process.WaitForExit();
+
+                        var success = process.ExitCode == 0;
+
+                        if (_settings.ShowNotifications)
+                        {
+                            if (success)
+                            {
+                                _context.API.ShowMsg("✅ Download Complete!", "Video downloaded successfully", _iconPath);
+                            }
+                            else
+                            {
+                                var errorMsg = GetFriendlyErrorMessage(error);
+                                _context.API.ShowMsg("❌ Download Failed", errorMsg, _iconPath);
+                            }
+                        }
+
+                        Debug.WriteLine($"Download result: Success={success}, Output length={output.Length}, Error length={error.Length}");
+                        return success;
+                    }
+
+                    return false;
+                }
+                catch (Exception e)
+                {
+                    Debug.WriteLine($"Download exception: {e.Message}");
+                    if (_settings.ShowNotifications)
+                    {
+                        _context.API.ShowMsg("❌ Download Error", e.Message, _iconPath);
+                    }
+                    return false;
+                }
+            }).GetAwaiter().GetResult();
         }
 
         private bool RunYtDlpCommand(string arguments)
@@ -933,7 +1123,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     {
                         Key = "ShowCommandWindow",
                         DisplayLabel = "Show Command Window During Downloads",
-                        DisplayDescription = "Display yt-dlp command window to see download progress and errors",
+                        DisplayDescription = "Display yt-dlp command window to see download progress and errors. Default: OFF (uses PowerToys notifications instead)",
                         PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
                         Value = _settings.ShowCommandWindow
                     },
@@ -941,7 +1131,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     {
                         Key = "AutoOpenFolder",
                         DisplayLabel = "Auto-Open Download Folder",
-                        DisplayDescription = "Automatically open the download folder after successful downloads",
+                        DisplayDescription = "Automatically open download folder after successful downloads. Smart activation - won't create duplicates if already open.",
                         PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
                         Value = _settings.AutoOpenFolder
                     }
@@ -1172,7 +1362,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         public bool MinimalNotifications { get; set; } = false;
         public bool IncludeQualityInFilename { get; set; } = true;
         public bool UseVideoIdInFilename { get; set; } = true; // Use video ID for unique filenames
-        public bool ShowCommandWindow { get; set; } = true; // Show command window during downloads
+        public bool ShowCommandWindow { get; set; } = false; // Show command window during downloads
         public bool AutoOpenFolder { get; set; } = true; // Automatically open download folder after successful download
     }
 }
