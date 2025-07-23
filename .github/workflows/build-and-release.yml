@@ -12,12 +12,13 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: windows-latest
     strategy:
+      fail-fast: false
       matrix:
         platform: [x64, arm64]
     steps:
@@ -30,8 +31,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-          cache: true  # Enable caching for .NET dependencies
-          cache-dependency-path: '**/packages.lock.json'  # Cache based on lock file if available
 
       - name: Get version
         id: get_version
@@ -54,7 +53,7 @@ jobs:
           }
 
       - name: Restore dependencies
-        run: dotnet restore VideoDownloader/VideoDownloader.sln -p:Platform="${{ matrix.platform }}"
+        run: dotnet restore VideoDownloader/VideoDownloader.sln --no-cache
         shell: pwsh
 
       - name: Build
