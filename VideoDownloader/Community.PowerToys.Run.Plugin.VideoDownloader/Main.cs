@@ -255,12 +255,14 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         _context.API.ShowMsg("⏳ Starting Download...", "Audio download initiated", _iconPath);
                     }
 
-                    var ffmpegDir = Path.GetDirectoryName(GetFfmpegExecutablePath());
+                    var ffmpegPath = GetFfmpegExecutablePath();
+                    var ffmpegDir = Path.GetDirectoryName(ffmpegPath);
                     var outputTemplate = GetSafeOutputTemplate("audio");
 
                     var commandParts = new List<string>
                     {
-                        "--ffmpeg-location", $"\"{ffmpegDir}\"",
+                        File.Exists(ffmpegPath) ? "--ffmpeg-location" : "",
+                        File.Exists(ffmpegPath) ? $"\"{ffmpegDir}\"" : "",
                         "-f", "bestaudio/best",
                         "-x",
                         "--audio-format", _settings.AudioFormat,
@@ -288,12 +290,19 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         if (success)
                         {
                             _context.API.ShowMsg("✅ Audio Downloaded!", "Download completed successfully", _iconPath);
-                            OpenDownloadFolder();
+                            if (_settings.AutoOpenFolder)
+                            {
+                                OpenDownloadFolder();
+                            }
                         }
                         else
                         {
                             _context.API.ShowMsg("❌ Download Failed", "Check the command window for details", _iconPath);
                         }
+                    }
+                    else if (success && _settings.AutoOpenFolder)
+                    {
+                        OpenDownloadFolder();
                     }
                 }
                 catch (Exception e)
@@ -316,12 +325,14 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     }
 
                     var format = GetQualityFormat(quality);
-                    var ffmpegDir = Path.GetDirectoryName(GetFfmpegExecutablePath());
+                    var ffmpegPath = GetFfmpegExecutablePath();
+                    var ffmpegDir = Path.GetDirectoryName(ffmpegPath);
                     var outputTemplate = GetSafeOutputTemplate(quality);
 
                     var commandParts = new List<string>
                     {
-                        "--ffmpeg-location", $"\"{ffmpegDir}\"",
+                        File.Exists(ffmpegPath) ? "--ffmpeg-location" : "",
+                        File.Exists(ffmpegPath) ? $"\"{ffmpegDir}\"" : "",
                         "-f", $"\"{format}\"",
                         "--merge-output-format", _settings.VideoFormat,
                         _settings.PreventFileOverwrites ? "--no-overwrites" : "", // Prevent overwriting existing files
@@ -353,12 +364,19 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         if (success)
                         {
                             _context.API.ShowMsg("✅ Video Downloaded!", "Download completed successfully", _iconPath);
-                            OpenDownloadFolder();
+                            if (_settings.AutoOpenFolder)
+                            {
+                                OpenDownloadFolder();
+                            }
                         }
                         else
                         {
                             _context.API.ShowMsg("❌ Download Failed", "Check the command window for details", _iconPath);
                         }
+                    }
+                    else if (success && _settings.AutoOpenFolder)
+                    {
+                        OpenDownloadFolder();
                     }
                 }
                 catch (Exception e)
@@ -454,6 +472,13 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     idPart = " [%(id)s]";
                 }
                 
+                // If user wants to prevent overwrites but not use video ID, add timestamp
+                if (_settings.PreventFileOverwrites && !_settings.UseVideoIdInFilename)
+                {
+                    var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                    idPart = $" [{timestamp}]";
+                }
+                
                 template = $"{titlePart}{qualityPart}{idPart}.%(ext)s";
             }
 
@@ -481,17 +506,35 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         {
             try
             {
-                var startInfo = new ProcessStartInfo
+                ProcessStartInfo startInfo;
+                if (showWindow)
                 {
-                    FileName = GetYtDlpExecutablePath(),
-                    Arguments = arguments,
-                    WorkingDirectory = _settings.DownloadPath,
-                    UseShellExecute = showWindow,
-                    RedirectStandardOutput = !showWindow,
-                    RedirectStandardError = !showWindow,
-                    CreateNoWindow = !showWindow,
-                    WindowStyle = showWindow ? ProcessWindowStyle.Normal : ProcessWindowStyle.Hidden,
-                };
+                    // For visible windows, use cmd.exe to keep window open after completion
+                    startInfo = new ProcessStartInfo
+                    {
+                        FileName = "cmd.exe",
+                        Arguments = $"/k \"\"{GetYtDlpExecutablePath()}\" {arguments} && echo. && echo Download completed! Press any key to close... && pause > nul\"",
+                        WorkingDirectory = _settings.DownloadPath,
+                        UseShellExecute = true,
+                        CreateNoWindow = false,
+                        WindowStyle = ProcessWindowStyle.Normal
+                    };
+                }
+                else
+                {
+                    // For hidden processes, direct execution
+                    startInfo = new ProcessStartInfo
+                    {
+                        FileName = GetYtDlpExecutablePath(),
+                        Arguments = arguments,
+                        WorkingDirectory = _settings.DownloadPath,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        CreateNoWindow = true,
+                        WindowStyle = ProcessWindowStyle.Hidden
+                    };
+                }
 
                 using var process = Process.Start(startInfo);
                 
@@ -849,6 +892,14 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         DisplayDescription = "Display yt-dlp command window to see download progress and errors",
                         PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
                         Value = _settings.ShowCommandWindow
+                    },
+                    new()
+                    {
+                        Key = "AutoOpenFolder",
+                        DisplayLabel = "Auto-Open Download Folder",
+                        DisplayDescription = "Automatically open the download folder after successful downloads",
+                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
+                        Value = _settings.AutoOpenFolder
                     }
                 };
             }
@@ -1038,6 +1089,13 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     Debug.WriteLine($"Show command window updated to: {_settings.ShowCommandWindow}");
                 }
 
+                var autoOpenFolderOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "AutoOpenFolder");
+                if (autoOpenFolderOption != null && autoOpenFolderOption.Value != _settings.AutoOpenFolder)
+                {
+                    _settings.AutoOpenFolder = autoOpenFolderOption.Value;
+                    Debug.WriteLine($"Auto-open folder updated to: {_settings.AutoOpenFolder}");
+                }
+
                 // Always save settings after any change
                 SaveSettings();
                 Debug.WriteLine("Settings update completed and saved");
@@ -1071,5 +1129,6 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         public bool IncludeQualityInFilename { get; set; } = true;
         public bool UseVideoIdInFilename { get; set; } = true; // Use video ID for unique filenames
         public bool ShowCommandWindow { get; set; } = true; // Show command window during downloads
+        public bool AutoOpenFolder { get; set; } = true; // Automatically open download folder after successful download
     }
 }
