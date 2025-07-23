@@ -266,7 +266,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         "--audio-format", _settings.AudioFormat,
                         "--audio-quality", _settings.AudioQuality.ToString(),
                         _settings.PreventFileOverwrites ? "--no-overwrites" : "", // Prevent overwriting existing files
-                        _settings.PreventFileOverwrites ? "--no-post-overwrites" : "" // Prevent overwriting post-processed files
+                        _settings.PreventFileOverwrites ? "--no-post-overwrites" : "", // Prevent overwriting post-processed files
                         "--restrict-filenames", // Use safe ASCII filenames
                         "--windows-filenames", // Ensure Windows compatibility
                         "-o", $"\"{outputTemplate}\""
@@ -325,7 +325,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         "-f", $"\"{format}\"",
                         "--merge-output-format", _settings.VideoFormat,
                         _settings.PreventFileOverwrites ? "--no-overwrites" : "", // Prevent overwriting existing files
-                        _settings.PreventFileOverwrites ? "--no-post-overwrites" : "" // Prevent overwriting post-processed files
+                        _settings.PreventFileOverwrites ? "--no-post-overwrites" : "", // Prevent overwriting post-processed files
                         "--restrict-filenames", // Use safe ASCII filenames
                         "--windows-filenames", // Ensure Windows compatibility
                         "-o", $"\"{outputTemplate}\""
@@ -417,7 +417,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
         private string BuildYtDlpCommand(IEnumerable<string> arguments)
         {
-            return string.Join(" ", arguments.Where(x => !string.IsNullOrEmpty(x)));
+            return string.Join(" ", arguments.Where(x => !string.IsNullOrWhiteSpace(x)));
         }
 
         private string GetQualityFormat(string quality) => quality.ToLower() switch
