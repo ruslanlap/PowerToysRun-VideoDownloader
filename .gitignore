@@ -84,3 +84,9 @@ scripts/
 
 # Ignore scripts directory
 scripts/
+
+# Build and release template files
+build-and-release-template
+dotnet-install.sh
+remaketag.log
+remaketag.sh
