@@ -41,7 +41,7 @@
     <img src="https://img.shields.io/github/v/release/ruslanlap/PowerToysRun-VideoDownloader?label=latest&style=flat-square" alt="Latest Release">
   </a>
   <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest">
-    <img src="https://img.shields.io/badge/version-v1.0.9-blue?style=flat-square" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.0.10-blue?style=flat-square" alt="Version">
   </a>
   <img src="https://img.shields.io/maintenance/yes/2025?style=flat-square" alt="Maintenance">
   <img src="https://img.shields.io/badge/C%23-.NET%209-512BD4?style=flat-square" alt="C# .NET 9">
@@ -75,8 +75,6 @@
 
 <div align="center">
   <img src="https://img.shields.io/badge/Supported%20Sites-1000%2B-success?style=flat-square" alt="Supported Sites">
-  <img src="https://img.shields.io/badge/Code%20Quality-A-brightgreen?style=flat-square" alt="Code Quality">
-  <img src="https://img.shields.io/badge/Windows%2011-Compatible-0078d7?style=flat-square&logo=windows" alt="Windows 11 Compatible">
   <img src="https://img.shields.io/badge/PowerToys-v0.75%2B-0078d7?style=flat-square" alt="PowerToys v0.75+">
   <img src="https://img.shields.io/badge/Automated%20Builds-CI%2FCD-2088FF?style=flat-square&logo=github-actions" alt="Automated Builds">
   <a href="https://github.com/hlaueriksson/awesome-powertoys-run-plugins">
