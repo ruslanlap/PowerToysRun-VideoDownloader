@@ -63,9 +63,6 @@
   <img src="https://img.shields.io/github/commit-activity/m/ruslanlap/PowerToysRun-VideoDownloader?style=flat-square" alt="Commit Activity">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square" alt="PRs Welcome">
   <img src="https://img.shields.io/badge/PowerToys-Run%20Plugin-0078d7?style=flat-square" alt="PowerToys Run Plugin">
-  <img src="https://img.shields.io/badge/YouTube-Compatible-FF0000?style=flat-square&logo=youtube" alt="YouTube Compatible">
-  <a href="https://twitter.com/intent/tweet?text=Check%20out%20this%20awesome%20PowerToys%20Run%20Video%20Downloader%20plugin!&url=https://github.com/ruslanlap/PowerToysRun-VideoDownloader">
-    <img src="https://img.shields.io/twitter/url?style=social&url=https%3A%2F%2Fgithub.com%2Fruslanlap%2FPowerToysRun-VideoDownloader" alt="Tweet">
   </a>
   
 </div>
