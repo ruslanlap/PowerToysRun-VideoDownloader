@@ -94,3 +94,7 @@ remaketag.sh
 # Additional files to hide
 Main_v1.0.5.cs
 2025-07-23 143359.png
+
+# Image files to hide
+icon.png
+image.png
