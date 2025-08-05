@@ -98,3 +98,8 @@ Main_v1.0.5.cs
 # Image files to hide
 icon.png
 image.png
+
+# Temp files and build artifacts
+temp/
+*.zip
+**/dotnet-install.sh
