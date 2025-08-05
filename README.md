@@ -2,7 +2,7 @@
 
 <div align="center">
   <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/download/v1.0.10/VideoDownloader-1.0.10-x64.zip" download style="display: inline-block; margin: 1rem 0;">
-    <img src="https://img.shields.io/badge/Download_Now-89B4FA?style=for-the-badge&logo=github&logoColor=CDD6F4&labelColor=1E1E2E" alt="Download Now">
+    <img src="https://img.shields.io/badge/Download_Now-6272A4?style=for-the-badge&logo=github&logoColor=white&labelColor=282A36" alt="Download Now">
   </a>
   <p><small>Latest version: v1.0.10 (x64 & ARM64) | 
     <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest">Other versions</a> | 
@@ -14,8 +14,8 @@
 ## 📊 Download Statistics
 
 <div align="center">
-  <img src="https://img.shields.io/github/downloads/ruslanlap/PowerToysRun-VideoDownloader/total?style=for-the-badge&label=Total%20Downloads&color=89B4FA&labelColor=1E1E2E" alt="Total Downloads">
-  <img src="https://img.shields.io/github/downloads/ruslanlap/PowerToysRun-VideoDownloader/latest/total?style=for-the-badge&label=Latest%20Release&color=A6E3A1&labelColor=1E1E2E" alt="Latest Release Downloads">
+  <img src="https://img.shields.io/github/downloads/ruslanlap/PowerToysRun-VideoDownloader/total?style=for-the-badge&label=Total%20Downloads&color=6272A4&labelColor=282A36" alt="Total Downloads">
+  <img src="https://img.shields.io/github/downloads/ruslanlap/PowerToysRun-VideoDownloader/latest/total?style=for-the-badge&label=Latest%20Release&color=6272A4&labelColor=282A36" alt="Latest Release Downloads">
 </div>
 
 
@@ -35,50 +35,50 @@
 
   <!-- Badges -->
   <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/actions/workflows/build-and-release.yml">
-    <img src="https://img.shields.io/badge/Build-Passing-89B4FA?style=flat-square&logo=github-actions&logoColor=CDD6F4&labelColor=1E1E2E" alt="Build Status">
+    <img src="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/actions/workflows/build-and-release.yml/badge.svg" alt="Build Status">
   </a>
   <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest">
-    <img src="https://img.shields.io/badge/Release-v1.0.10-89B4FA?style=flat-square&logo=github&logoColor=CDD6F4&labelColor=1E1E2E" alt="Latest Release">
+    <img src="https://img.shields.io/github/v/release/ruslanlap/PowerToysRun-VideoDownloader?label=latest&style=flat-square&color=50FA7B&labelColor=282A36" alt="Latest Release">
   </a>
   <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest">
-    <img src="https://img.shields.io/badge/Version-v1.0.10-89B4FA?style=flat-square&labelColor=1E1E2E" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.0.10-6272A4?style=flat-square&labelColor=282A36" alt="Version">
   </a>
-  <img src="https://img.shields.io/badge/Maintenance-Active-A6E3A1?style=flat-square&labelColor=1E1E2E" alt="Maintenance">
-  <img src="https://img.shields.io/badge/C%23-.NET%209-89B4FA?style=flat-square&logo=csharp&logoColor=CDD6F4&labelColor=1E1E2E" alt="C# .NET 9">
-  <img src="https://img.shields.io/badge/Platform-Windows%2010%2B-89B4FA?style=flat-square&logo=windows&logoColor=CDD6F4&labelColor=1E1E2E" alt="Windows 10+">
-  <img src="https://img.shields.io/badge/Arch-x64%20%7C%20ARM64-89B4FA?style=flat-square&labelColor=1E1E2E" alt="x64 | ARM64">
+  <img src="https://img.shields.io/maintenance/yes/2025?style=flat-square&color=50FA7B&labelColor=282A36" alt="Maintenance">
+  <img src="https://img.shields.io/badge/C%23-.NET%209-FF79C6?style=flat-square&labelColor=282A36" alt="C# .NET 9">
+  <img src="https://img.shields.io/badge/Platform-Windows%2010%2B-8BE9FD?style=flat-square&labelColor=282A36" alt="Windows 10+">
+  <img src="https://img.shields.io/badge/Arch-x64%20%7C%20ARM64-FFB86C?style=flat-square&labelColor=282A36" alt="x64 | ARM64">
   <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/stargazers">
-    <img src="https://img.shields.io/badge/Stars-52-F5C2E7?style=flat-square&logo=github&logoColor=CDD6F4&labelColor=1E1E2E" alt="GitHub stars">
+    <img src="https://img.shields.io/github/stars/ruslanlap/PowerToysRun-VideoDownloader?style=flat-square&color=FF79C6&labelColor=282A36" alt="GitHub stars">
   </a>
   <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/issues">
-    <img src="https://img.shields.io/badge/Issues-0-A6E3A1?style=flat-square&logo=github&logoColor=CDD6F4&labelColor=1E1E2E" alt="GitHub issues">
+    <img src="https://img.shields.io/github/issues/ruslanlap/PowerToysRun-VideoDownloader?style=flat-square&color=FF5555&labelColor=282A36" alt="GitHub issues">
   </a>
   <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest">
-    <img src="https://img.shields.io/badge/Downloads-1000%2B-F5C2E7?style=flat-square&logo=github&logoColor=CDD6F4&labelColor=1E1E2E" alt="GitHub all releases">
+    <img src="https://img.shields.io/github/downloads/ruslanlap/PowerToysRun-VideoDownloader/total?style=flat-square&color=50FA7B&labelColor=282A36" alt="GitHub all releases">
   </a>
   <a href="https://opensource.org/licenses/MIT">
-    <img src="https://img.shields.io/badge/License-MIT-F5C2E7?style=flat-square&labelColor=1E1E2E" alt="License">
+    <img src="https://img.shields.io/badge/License-MIT-FFB86C.svg?style=flat-square&labelColor=282A36" alt="License">
   </a>
-  <img src="https://img.shields.io/badge/Last%20Commit-Recent-89B4FA?style=flat-square&logo=git&logoColor=CDD6F4&labelColor=1E1E2E" alt="Last Commit">
-  <img src="https://img.shields.io/badge/Activity-Active-A6E3A1?style=flat-square&labelColor=1E1E2E" alt="Commit Activity">
-  <img src="https://img.shields.io/badge/PRs-Welcome-A6E3A1?style=flat-square&labelColor=1E1E2E" alt="PRs Welcome">
-  <img src="https://img.shields.io/badge/PowerToys-Run%20Plugin-89B4FA?style=flat-square&logo=microsoft&logoColor=CDD6F4&labelColor=1E1E2E" alt="PowerToys Run Plugin">
+  <img src="https://img.shields.io/github/last-commit/ruslanlap/PowerToysRun-VideoDownloader?style=flat-square&color=8BE9FD&labelColor=282A36" alt="Last Commit">
+  <img src="https://img.shields.io/github/commit-activity/m/ruslanlap/PowerToysRun-VideoDownloader?style=flat-square&color=FF79C6&labelColor=282A36" alt="Commit Activity">
+  <img src="https://img.shields.io/badge/PRs-welcome-50FA7B.svg?style=flat-square&labelColor=282A36" alt="PRs Welcome">
+  <img src="https://img.shields.io/badge/PowerToys-Run%20Plugin-6272A4?style=flat-square&labelColor=282A36" alt="PowerToys Run Plugin">
   </a>
   
 </div>
 
 <div align="center">
   <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest">
-    <img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_DOWNLOAD_LATEST_RELEASE-89B4FA?style=for-the-badge&logo=github&logoColor=CDD6F4&labelColor=1E1E2E" alt="Download Latest Release">
+    <img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_DOWNLOAD_LATEST_RELEASE-6272A4?style=for-the-badge&logo=github&labelColor=282A36" alt="Download Latest Release">
   </a>
 </div>
 
 <div align="center">
-  <img src="https://img.shields.io/badge/Supported%20Sites-1000%2B-A6E3A1?style=flat-square&labelColor=1E1E2E" alt="Supported Sites">
-  <img src="https://img.shields.io/badge/PowerToys-v0.75%2B-89B4FA?style=flat-square&logo=microsoft&logoColor=CDD6F4&labelColor=1E1E2E" alt="PowerToys v0.75+">
-  <img src="https://img.shields.io/badge/Automated%20Builds-CI%2FCD-89B4FA?style=flat-square&logo=github-actions&logoColor=CDD6F4&labelColor=1E1E2E" alt="Automated Builds">
+  <img src="https://img.shields.io/badge/Supported%20Sites-1000%2B-50FA7B?style=flat-square&labelColor=282A36" alt="Supported Sites">
+  <img src="https://img.shields.io/badge/PowerToys-v0.75%2B-8BE9FD?style=flat-square&labelColor=282A36" alt="PowerToys v0.75+">
+  <img src="https://img.shields.io/badge/Automated%20Builds-CI%2FCD-FF79C6?style=flat-square&logo=github-actions&labelColor=282A36" alt="Automated Builds">
   <a href="https://github.com/hlaueriksson/awesome-powertoys-run-plugins">
-    <img src="https://img.shields.io/badge/Awesome-Mentioned-F5C2E7?style=flat-square&logo=awesome&logoColor=CDD6F4&labelColor=1E1E2E" alt="Mentioned in Awesome PowerToys Run Plugins">
+    <img src="https://awesome.re/mentioned-badge.svg" alt="Mentioned in Awesome PowerToys Run Plugins">
 </div>
 
 ---
