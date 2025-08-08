@@ -267,16 +267,14 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         "-x",
                         "--audio-format", _settings.AudioFormat,
                         "--audio-quality", _settings.AudioQuality.ToString(),
-                        "--no-overwrites", // Always prevent overwriting - this fixes filename conflicts
+                        _settings.PreventFileOverwrites ? "--no-overwrites" : "",
                         "--restrict-filenames", // Use safe ASCII filenames
                         "--windows-filenames", // Ensure Windows compatibility
+                        "--ignore-config", // Avoid user/global yt-dlp configs breaking the plugin
+                        "--no-playlist",
                         "-o", $"\"{outputTemplate}\""
                     };
 
-                    if (_settings.EmbedMetadata)
-                    {
-                        commandParts.AddRange(new[] { "--embed-metadata", "--add-metadata" });
-                    }
 
                     commandParts.Add($"\"{url}\"");
                     var command = BuildYtDlpCommand(commandParts);
@@ -324,21 +322,14 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         File.Exists(ffmpegPath) ? $"\"{ffmpegDir}\"" : "",
                         "-f", $"\"{format}\"",
                         "--merge-output-format", _settings.VideoFormat,
-                        "--no-overwrites", // Always prevent overwriting - this fixes filename conflicts
+                        _settings.PreventFileOverwrites ? "--no-overwrites" : "",
                         "--restrict-filenames", // Use safe ASCII filenames
                         "--windows-filenames", // Ensure Windows compatibility
+                        "--ignore-config", // Avoid user/global yt-dlp configs breaking the plugin
+                        "--no-playlist",
                         "-o", $"\"{outputTemplate}\""
                     };
 
-                    if (_settings.EmbedSubtitles)
-                    {
-                        commandParts.AddRange(new[] { "--embed-subs", "--write-auto-sub", "--sub-lang", "en,uk,ru" });
-                    }
-
-                    if (_settings.EmbedMetadata)
-                    {
-                        commandParts.AddRange(new[] { "--embed-metadata", "--add-metadata" });
-                    }
 
                     commandParts.Add($"\"{url}\"");
 
@@ -376,6 +367,8 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     {
                         "--list-formats",
                         "--no-download",
+                        "--ignore-config",
+                        "--no-playlist",
                         $"\"{url}\""
                     });
 
@@ -759,33 +752,37 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         WindowStyle = ProcessWindowStyle.Hidden
                     };
 
-                    using var process = Process.Start(startInfo);
-                    if (process != null)
+                    using var process = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+                    var stdOut = new System.Text.StringBuilder();
+                    var stdErr = new System.Text.StringBuilder();
+
+                    process.OutputDataReceived += (_, e) => { if (e.Data != null) stdOut.AppendLine(e.Data); };
+                    process.ErrorDataReceived += (_, e) => { if (e.Data != null) stdErr.AppendLine(e.Data); };
+
+                    var started = process.Start();
+                    if (!started) return false;
+
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+                    process.WaitForExit();
+
+                    var success = process.ExitCode == 0;
+
+                    if (_settings.ShowNotifications)
                     {
-                        var output = process.StandardOutput.ReadToEnd();
-                        var error = process.StandardError.ReadToEnd();
-                        process.WaitForExit();
-
-                        var success = process.ExitCode == 0;
-
-                        if (_settings.ShowNotifications)
+                        if (success)
                         {
-                            if (success)
-                            {
-                                _context.API.ShowMsg("✅ Download Complete!", "Video downloaded successfully", _iconPath);
-                            }
-                            else
-                            {
-                                var errorMsg = GetFriendlyErrorMessage(error);
-                                _context.API.ShowMsg("❌ Download Failed", errorMsg, _iconPath);
-                            }
+                            _context.API.ShowMsg("✅ Download Complete!", "Video downloaded successfully", _iconPath);
                         }
-
-                        Debug.WriteLine($"Download result: Success={success}, Output length={output.Length}, Error length={error.Length}");
-                        return success;
+                        else
+                        {
+                            var errorMsg = GetFriendlyErrorMessage(stdErr.ToString());
+                            _context.API.ShowMsg("❌ Download Failed", errorMsg, _iconPath);
+                        }
                     }
 
-                    return false;
+                    Debug.WriteLine($"Download result: Success={success}, Output length={stdOut.Length}, Error length={stdErr.Length}");
+                    return success;
                 }
                 catch (Exception e)
                 {
@@ -1055,22 +1052,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
                         Value = _settings.AudioOnlyDefault
                     },
-                    new()
-                    {
-                        Key = "EmbedSubtitles",
-                        DisplayLabel = "Embed Subtitles",
-                        DisplayDescription = "Automatically download and embed subtitles",
-                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
-                        Value = _settings.EmbedSubtitles
-                    },
-                    new()
-                    {
-                        Key = "EmbedMetadata",
-                        DisplayLabel = "Embed Metadata",
-                        DisplayDescription = "Include video metadata (title, description, etc.)",
-                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
-                        Value = _settings.EmbedMetadata
-                    },
+                    
                     new()
                     {
                         Key = "PreventFileOverwrites",
@@ -1260,19 +1242,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     Debug.WriteLine($"Audio only default updated to: {_settings.AudioOnlyDefault}");
                 }
 
-                var embedSubsOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "EmbedSubtitles");
-                if (embedSubsOption != null && embedSubsOption.Value != _settings.EmbedSubtitles)
-                {
-                    _settings.EmbedSubtitles = embedSubsOption.Value;
-                    Debug.WriteLine($"Embed subtitles updated to: {_settings.EmbedSubtitles}");
-                }
-
-                var embedMetaOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "EmbedMetadata");
-                if (embedMetaOption != null && embedMetaOption.Value != _settings.EmbedMetadata)
-                {
-                    _settings.EmbedMetadata = embedMetaOption.Value;
-                    Debug.WriteLine($"Embed metadata updated to: {_settings.EmbedMetadata}");
-                }
+                
 
                 var preventOverwritesOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "PreventFileOverwrites");
                 if (preventOverwritesOption != null && preventOverwritesOption.Value != _settings.PreventFileOverwrites)
@@ -1354,8 +1324,6 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         public string VideoFormat { get; set; } = "mp4";
         public string AudioFormat { get; set; } = "mp3";
         public int AudioQuality { get; set; } = 0; // 0 = best quality
-        public bool EmbedSubtitles { get; set; } = true;
-        public bool EmbedMetadata { get; set; } = true;
         public bool PreventFileOverwrites { get; set; } = true; // New setting to prevent overwrites
         public string CustomFilenameTemplate { get; set; } = "";
         public bool ShowNotifications { get; set; } = true;
