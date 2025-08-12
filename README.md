@@ -26,6 +26,8 @@
 
 > ⚠️ **Technical Note:** Muxed streams are deprecated by YouTube and are not guaranteed to be available for every video. If possible, avoid relying on them too much and instead perform muxing manually using the provided audio-only and video-only streams.
 
+> Note: Starting with v1.0.10, subtitle and metadata features were removed to improve speed and reliability for most users and videos. If you need subtitles, please use v1.0.9.
+
 <div align="center">
 <p align="center">
   <img src="assets/logo.png" width="200" alt="Plugin Logo" alt="logo">
@@ -350,10 +352,7 @@ Thank you to all the amazing people who have contributed to this project and cre
 <p>Yes, yt-dlp lets you download entire playlists by simply pasting the playlist URL. The plugin supports this functionality automatically.</p>
 </details>
 
-<details>
-<summary><b>Does yt-dlp support subtitles?</b></summary>
-<p>Yes, yt-dlp supports subtitles in various formats. The plugin can be configured to automatically download and embed subtitles in your preferred language.</p>
-</details>
+ 
 
 <details>
 <summary><b>Can I download audio-only files?</b></summary>
@@ -421,14 +420,18 @@ MIT License. See [LICENSE](LICENSE).
 - WPF (UI)
 - PowerToys Run API
 - yt-dlp (video downloading)
-- YoutubeExplode (YouTube metadata)
+- YoutubeExplode
 - GitHub Actions (CI/CD)
 
 ---
 
 ## 📝 Changelog
 
-### v1.0.8 (Latest) ✅ PTRUN Compliant
+### v1.0.10 (Latest)
+- Removed subtitles and metadata features to improve speed and reliability for most users and videos
+- If you need subtitles,you can try to use v1.0.9
+
+### v1.0.8 ✅ PTRUN Compliant
 - **🔧 Fixed**: All PowerToys Run linting issues (PTRUN1301, PTRUN1303, PTRUN1401, PTRUN1402)
 - **📦 Improved**: Package naming follows `<name>-<version>-<platform>.zip` convention (removed 'v' prefix)
 - **🔐 Added**: SHA256 checksums for all release packages
