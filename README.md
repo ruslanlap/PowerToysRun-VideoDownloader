@@ -1,10 +1,10 @@
 # 🎥 PowerToys Run: Video Downloader
 
 <div align="center">
-  <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/download/v1.0.10/VideoDownloader-1.0.10-x64.zip" download style="display: inline-block; margin: 1rem 0;">
+  <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/tag/v1.10" download style="display: inline-block; margin: 1rem 0;">
     <img src="https://img.shields.io/badge/Download_Now-6272A4?style=for-the-badge&logo=github&logoColor=white&labelColor=282A36" alt="Download Now">
   </a>
-  <p><small>Latest version: v1.0.10 (x64 & ARM64) | 
+  <p><small>Latest version: v1.10 (x64 & ARM64) | 
     <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest">Other versions</a> | 
     <a href="VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/CHANGELOG.md">Changelog</a>
     <img src="assets/demo-videodownloader.gif" width="800" style="vertical-align: middle; margin-left: 5px; border-radius: 3px;" alt="Demo">
@@ -43,7 +43,7 @@
     <img src="https://img.shields.io/github/v/release/ruslanlap/PowerToysRun-VideoDownloader?label=latest&style=flat-square&color=50FA7B&labelColor=282A36" alt="Latest Release">
   </a>
   <a href="https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest">
-    <img src="https://img.shields.io/badge/version-v1.0.10-6272A4?style=flat-square&labelColor=282A36" alt="Version">
+    <img src="https://img.shields.io/badge/version-v1.10-6272A4?style=flat-square&labelColor=282A36" alt="Version">
   </a>
   <img src="https://img.shields.io/maintenance/yes/2025?style=flat-square&color=50FA7B&labelColor=282A36" alt="Maintenance">
   <img src="https://img.shields.io/badge/C%23-.NET%209-FF79C6?style=flat-square&labelColor=282A36" alt="C# .NET 9">
@@ -274,8 +274,8 @@ If you encounter any issues, please [open an issue](https://github.com/ruslanlap
 </div>
 
 ## 🔔 Easy Install
-1. [Download the release (x64)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.9-x64.zip)
-2. [Download the release (ARM64)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.9-ARM64.zip)
+1. [Download the release (x64)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/download/v1.10/VideoDownloader-1.10-x64.zip)
+2. [Download the release (ARM64)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/download/v1.10/VideoDownloader-1.10-ARM64.zip)
 3. Extract to `%LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\`
 4. Restart PowerToys
 
