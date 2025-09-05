@@ -990,7 +990,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         "--windows-filenames",
                         "--ignore-config",
                         "--no-playlist",
-                        "-o", $"{outputTemplate}"
+                        "-o", $"\"{outputTemplate}\""
                     };
 
                     // Add subtitle-specific arguments safely
@@ -1015,7 +1015,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         commandParts.AddRange(new[] { "--sub-langs", _settings.SubtitleLanguages.Trim() });
                     }
 
-                    commandParts.Add($"{url}");
+                    commandParts.Add($"\"{url}\"");
 
                     var command = BuildYtDlpCommand(commandParts);
                     Debug.WriteLine($"Subtitle download - Command: {command}");
