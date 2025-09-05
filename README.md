@@ -26,7 +26,7 @@
 
 > ⚠️ **Technical Note:** Muxed streams are deprecated by YouTube and are not guaranteed to be available for every video. If possible, avoid relying on them too much and instead perform muxing manually using the provided audio-only and video-only streams.
 
-> Note: Starting with v1.10, subtitle and metadata features were removed to improve speed and reliability for most users and videos. If you need subtitles, please use v1.0.9.
+> Note: Subtitle and metadata features are disabled by default for speed. Use the "Download Video with Subtitles" option when subtitles are needed.
 
 <div align="center">
 <p align="center">
@@ -428,8 +428,8 @@ MIT License. See [LICENSE](LICENSE).
 ## 📝 Changelog
 
 ### v1.10 (Latest)
-- Removed subtitles and metadata features to improve speed and reliability for most users and videos
-- If you need subtitles, you can use v1.0.9
+- Added option to download videos with subtitles on demand
+- Metadata features remain disabled to improve speed and reliability
 
 ### v1.0.8 ✅ PTRUN Compliant
 - **🔧 Fixed**: All PowerToys Run linting issues (PTRUN1301, PTRUN1303, PTRUN1401, PTRUN1402)
