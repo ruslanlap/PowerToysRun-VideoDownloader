@@ -79,27 +79,36 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             {
                 var domain = GetDomainFromUrl(search);
 
+                var subtitleSuffix = _settings.AlwaysDownloadSubtitles ? " + subtitles" : "";
+                
                 if (_settings.AudioOnlyDefault)
                 {
                     results.Add(new Result { Title = $"🎵 Download Audio from {domain}", SubTitle = $"Format: {_settings.AudioFormat.ToUpper()}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadAudio(search); return true; } });
-                    results.Add(new Result { Title = $"🎥 Download Video instead", SubTitle = $"Quality: {_settings.DefaultVideoQuality}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadVideo(search); return true; } });
+                    results.Add(new Result { Title = $"🎥 Download Video instead", SubTitle = $"Quality: {_settings.DefaultVideoQuality}{subtitleSuffix}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadVideo(search); return true; } });
                 }
                 else
                 {
-                    results.Add(new Result { Title = $"🎥 Download Video from {domain}", SubTitle = $"Quality: {_settings.DefaultVideoQuality}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadVideo(search); return true; } });
+                    results.Add(new Result { Title = $"🎥 Download Video from {domain}", SubTitle = $"Quality: {_settings.DefaultVideoQuality}{subtitleSuffix}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadVideo(search); return true; } });
                     results.Add(new Result { Title = $"🎵 Download Audio Only", SubTitle = $"Format: {_settings.AudioFormat.ToUpper()}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadAudio(search); return true; } });
                 }
 
-                results.Add(new Result { Title = $"💬 Download Video with Subtitles", SubTitle = $"Quality: {_settings.DefaultVideoQuality}. Safe filename handling with subtitles.", IcoPath = _iconPath, Action = _ => { DownloadVideoWithSubtitles(search); return true; } });
+                // Subtitle options
+                results.Add(new Result { Title = $"📝 Download Subtitles Only", SubTitle = "Download available subtitles in SRT format", IcoPath = _iconPath, Action = _ => { DownloadSubtitlesOnly(search); return true; } });
+                
+                if (!_settings.AlwaysDownloadSubtitles)
+                {
+                    results.Add(new Result { Title = $"💬 Download with Subtitles", SubTitle = $"Quality: {_settings.DefaultVideoQuality} + subtitles", IcoPath = _iconPath, Action = _ => { DownloadVideoWithSubtitles(search); return true; } });
+                }
 
                 var qualityOptions = new[] { "1080p", "720p", "480p", "360p", "best" };
                 foreach (var quality in qualityOptions.Where(q => q != _settings.DefaultVideoQuality))
                 {
-                    results.Add(new Result { Title = $"🎬 Download in {quality}", SubTitle = $"Download video in {quality} quality with safe filename handling", IcoPath = _iconPath, Action = _ => { DownloadWithQuality(search, quality); return true; } });
+                    results.Add(new Result { Title = $"🎬 Download in {quality}", SubTitle = $"Download video in {quality} quality{subtitleSuffix} with safe filename handling", IcoPath = _iconPath, Action = _ => { DownloadWithQuality(search, quality); return true; } });
                 }
 
-                // Only show video info once - removed duplicate logic
+                // Information options
                 results.Add(new Result { Title = $"ℹ️ Show Available Formats", SubTitle = "Display all available video/audio formats", IcoPath = _iconPath, Action = _ => { ShowVideoFormats(search); return true; } });
+                results.Add(new Result { Title = $"🔤 Show Available Subtitles", SubTitle = "Display all available subtitle languages", IcoPath = _iconPath, Action = _ => { ShowAvailableSubtitles(search); return true; } });
             }
             else
             {
@@ -246,7 +255,8 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
         private void DownloadVideo(string url) => DownloadWithQuality(url, _settings.DefaultVideoQuality);
 
-        private void DownloadVideoWithSubtitles(string url) => DownloadWithQuality(url, _settings.DefaultVideoQuality, true);
+        private void DownloadVideoWithSubtitles(string url) => DownloadWithQuality(url, _settings.DefaultVideoQuality, downloadSubtitles: true);
+        private void DownloadSubtitlesOnly(string url) => DownloadSubtitles(url);
 
         private void DownloadAudio(string url)
         {
@@ -334,15 +344,11 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         "-o", $"\"{outputTemplate}\""
                     };
 
-                    if (downloadSubtitles)
+                    // Add subtitle handling based on settings
+                    if (downloadSubtitles || _settings.AlwaysDownloadSubtitles)
                     {
-                        commandParts.AddRange(new[]
-                        {
-                            "--write-subs",
-                            "--write-auto-subs",
-                            "--all-subs",
-                            "--convert-subs", "srt"
-                        });
+                        var subtitleArgs = GetSubtitleArgs();
+                        commandParts.AddRange(subtitleArgs);
                     }
 
                     commandParts.Add($"\"{url}\"");
@@ -366,6 +372,34 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                 {
                     _context.API.ShowMsg("❌ Download Error", e.Message, _iconPath);
                     Debug.WriteLine($"Video download exception: {e}");
+                }
+            });
+        }
+
+        private void ShowAvailableSubtitles(string url)
+        {
+            Task.Run(() =>
+            {
+                try
+                {
+                    var command = BuildYtDlpCommand(new[]
+                    {
+                        "--list-subs",
+                        "--no-download",
+                        "--ignore-config",
+                        "--no-playlist",
+                        $"\"{url}\""
+                    });
+
+                    Debug.WriteLine($"Show subtitles - Command: {command}");
+                    
+                    // Always show in visible CMD window
+                    RunYtDlpCommandVisible(command);
+                }
+                catch (Exception e)
+                {
+                    _context.API.ShowMsg("❌ Subtitle Information Error", e.Message, _iconPath);
+                    Debug.WriteLine($"Subtitle info exception: {e}");
                 }
             });
         }
@@ -835,6 +869,179 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             return output;
         }
 
+        private string[] GetSubtitleArgs()
+        {
+            var args = new List<string>();
+            
+            try
+            {
+                // Always add ignore-errors for subtitle downloads to prevent video download failure
+                args.Add("--ignore-errors");
+                
+                // Write subtitles
+                if (_settings.WriteSubtitles)
+                {
+                    args.Add("--write-subs");
+                }
+                
+                // Write auto-generated subtitles if manual subs aren't available
+                if (_settings.WriteAutoSubtitles)
+                {
+                    args.Add("--write-auto-subs");
+                }
+                
+                // Download all available subtitle languages or specific ones
+                if (_settings.DownloadAllSubtitles)
+                {
+                    args.Add("--all-subs");
+                }
+                else if (!string.IsNullOrEmpty(_settings.SubtitleLanguages?.Trim()))
+                {
+                    // Validate language codes format
+                    var languages = _settings.SubtitleLanguages.Trim();
+                    if (IsValidLanguageFormat(languages))
+                    {
+                        args.AddRange(new[] { "--sub-langs", languages });
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"Invalid subtitle language format: {languages}. Using default behavior.");
+                    }
+                }
+                
+                // Convert subtitles to specified format
+                var format = _settings.SubtitleFormat?.Trim()?.ToLower();
+                if (!string.IsNullOrEmpty(format) && IsValidSubtitleFormat(format))
+                {
+                    args.AddRange(new[] { "--convert-subs", format });
+                }
+                else if (!string.IsNullOrEmpty(format))
+                {
+                    Debug.WriteLine($"Invalid subtitle format: {format}. Using default SRT.");
+                    args.AddRange(new[] { "--convert-subs", "srt" });
+                }
+                
+                // Embed subtitles in video file if requested (only for compatible formats)
+                if (_settings.EmbedSubtitles && IsEmbeddingCompatibleFormat(_settings.VideoFormat))
+                {
+                    args.Add("--embed-subs");
+                }
+                else if (_settings.EmbedSubtitles)
+                {
+                    Debug.WriteLine($"Subtitle embedding not supported for {_settings.VideoFormat} format. Downloading as separate files.");
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"Error building subtitle args: {e.Message}. Using basic subtitle options.");
+                args.Clear();
+                args.AddRange(new[] { "--ignore-errors", "--write-subs", "--write-auto-subs", "--convert-subs", "srt" });
+            }
+            
+            return args.ToArray();
+        }
+
+        private bool IsValidLanguageFormat(string languages)
+        {
+            if (string.IsNullOrWhiteSpace(languages)) return false;
+            
+            // Check for valid language code format (2-3 letter codes separated by commas)
+            var langCodes = languages.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            return langCodes.All(code => 
+            {
+                var trimmed = code.Trim();
+                return trimmed.Length >= 2 && trimmed.Length <= 5 && 
+                       trimmed.All(c => char.IsLetterOrDigit(c) || c == '-');
+            });
+        }
+
+        private bool IsValidSubtitleFormat(string format)
+        {
+            var validFormats = new[] { "srt", "vtt", "ass", "lrc", "ttml", "sbv", "json3" };
+            return validFormats.Contains(format?.ToLower());
+        }
+
+        private bool IsEmbeddingCompatibleFormat(string videoFormat)
+        {
+            var compatibleFormats = new[] { "mkv", "mp4", "webm" };
+            return compatibleFormats.Contains(videoFormat?.ToLower());
+        }
+
+        private void DownloadSubtitles(string url)
+        {
+            Task.Run(() =>
+            {
+                try
+                {
+                    if (_settings.ShowNotifications && !_settings.MinimalNotifications)
+                    {
+                        _context.API.ShowMsg("⏳ Starting Download...", "Subtitle download initiated", _iconPath);
+                    }
+
+                    var outputTemplate = GetSafeOutputTemplate("subtitles");
+                    var commandParts = new List<string>
+                    {
+                        "--write-subs",
+                        "--write-auto-subs",
+                        "--skip-download", // Only download subtitles, not the video
+                        "--ignore-errors", // Continue even if some subtitle languages fail
+                        _settings.PreventFileOverwrites ? "--no-overwrites" : "",
+                        "--restrict-filenames",
+                        "--windows-filenames",
+                        "--ignore-config",
+                        "--no-playlist",
+                        "-o", $\"\"{outputTemplate}\"\"
+                    };
+
+                    // Add subtitle-specific arguments safely
+                    var subtitleFormat = _settings.SubtitleFormat?.Trim()?.ToLower();
+                    if (!string.IsNullOrEmpty(subtitleFormat) && IsValidSubtitleFormat(subtitleFormat))
+                    {
+                        commandParts.AddRange(new[] { "--convert-subs", subtitleFormat });
+                    }
+                    else
+                    {
+                        commandParts.AddRange(new[] { "--convert-subs", "srt" });
+                    }
+
+                    // Add language preferences
+                    if (_settings.DownloadAllSubtitles)
+                    {
+                        commandParts.Add("--all-subs");
+                    }
+                    else if (!string.IsNullOrEmpty(_settings.SubtitleLanguages?.Trim()) && 
+                             IsValidLanguageFormat(_settings.SubtitleLanguages.Trim()))
+                    {
+                        commandParts.AddRange(new[] { "--sub-langs", _settings.SubtitleLanguages.Trim() });
+                    }
+
+                    commandParts.Add($\"\"{url}\"\");
+
+                    var command = BuildYtDlpCommand(commandParts);
+                    Debug.WriteLine($"Subtitle download - Command: {command}");
+                    
+                    var success = RunYtDlpCommandVisible(command);
+                    
+                    if (success && _settings.AutoOpenFolder)
+                    {
+                        Task.Delay(1000).ContinueWith(_ => OpenDownloadFolder());
+                    }
+                    else if (!success)
+                    {
+                        if (_settings.ShowNotifications)
+                        {
+                            _context.API.ShowMsg("⚠️ Subtitle Download", "Some or all subtitles may not be available for this video.", _iconPath);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    _context.API.ShowMsg("❌ Subtitle Download Error", e.Message, _iconPath);
+                    Debug.WriteLine($"Subtitle download exception: {e}");
+                }
+            });
+        }
+
         private string GetFriendlyErrorMessage(string errorOutput)
         {
             if (string.IsNullOrEmpty(errorOutput))
@@ -878,6 +1085,14 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             else if (error.Contains("ffmpeg") || error.Contains("postprocess"))
             {
                 return "Post-processing error. Video downloaded but format conversion failed.";
+            }
+            else if (error.Contains("subtitle") || error.Contains("sub") || error.Contains("caption"))
+            {
+                return "Subtitle download error. Video may have downloaded successfully but subtitles failed.";
+            }
+            else if (error.Contains("language") && (error.Contains("not available") || error.Contains("unavailable")))
+            {
+                return "Requested subtitle language not available. Try checking available subtitles first.";
             }
             
             // For other errors, show first meaningful line
@@ -1130,6 +1345,62 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         DisplayDescription = "Automatically open download folder after successful downloads. Smart activation - won't create duplicates if already open.",
                         PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
                         Value = _settings.AutoOpenFolder
+                    },
+                    new()
+                    {
+                        Key = "AlwaysDownloadSubtitles",
+                        DisplayLabel = "Always Download Subtitles",
+                        DisplayDescription = "Automatically download subtitles with every video (when available)",
+                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
+                        Value = _settings.AlwaysDownloadSubtitles
+                    },
+                    new()
+                    {
+                        Key = "WriteSubtitles",
+                        DisplayLabel = "Download Manual Subtitles",
+                        DisplayDescription = "Download manually created subtitles when available",
+                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
+                        Value = _settings.WriteSubtitles
+                    },
+                    new()
+                    {
+                        Key = "WriteAutoSubtitles",
+                        DisplayLabel = "Download Auto-Generated Subtitles",
+                        DisplayDescription = "Download auto-generated subtitles as fallback when manual ones aren't available",
+                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
+                        Value = _settings.WriteAutoSubtitles
+                    },
+                    new()
+                    {
+                        Key = "SubtitleLanguages",
+                        DisplayLabel = "Preferred Subtitle Languages",
+                        DisplayDescription = "Comma-separated language codes (e.g., 'en,uk,ru,es,fr'). Leave empty for all available languages.",
+                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Textbox,
+                        TextValue = _settings.SubtitleLanguages
+                    },
+                    new()
+                    {
+                        Key = "SubtitleFormat",
+                        DisplayLabel = "Subtitle Format",
+                        DisplayDescription = "Subtitle file format (srt, vtt, ass, lrc, etc.)",
+                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Textbox,
+                        TextValue = _settings.SubtitleFormat
+                    },
+                    new()
+                    {
+                        Key = "DownloadAllSubtitles",
+                        DisplayLabel = "Download All Subtitle Languages",
+                        DisplayDescription = "Download subtitles in all available languages (ignores language preferences)",
+                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
+                        Value = _settings.DownloadAllSubtitles
+                    },
+                    new()
+                    {
+                        Key = "EmbedSubtitles",
+                        DisplayLabel = "Embed Subtitles in Video",
+                        DisplayDescription = "Embed subtitle tracks directly in the video file (for supported formats like MKV)",
+                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
+                        Value = _settings.EmbedSubtitles
                     }
                 };
             }
@@ -1314,6 +1585,65 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     Debug.WriteLine($"Auto-open folder updated to: {_settings.AutoOpenFolder}");
                 }
 
+                // Subtitle settings
+                var alwaysDownloadSubtitlesOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "AlwaysDownloadSubtitles");
+                if (alwaysDownloadSubtitlesOption != null && alwaysDownloadSubtitlesOption.Value != _settings.AlwaysDownloadSubtitles)
+                {
+                    _settings.AlwaysDownloadSubtitles = alwaysDownloadSubtitlesOption.Value;
+                    Debug.WriteLine($"Always download subtitles updated to: {_settings.AlwaysDownloadSubtitles}");
+                }
+
+                var writeSubtitlesOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "WriteSubtitles");
+                if (writeSubtitlesOption != null && writeSubtitlesOption.Value != _settings.WriteSubtitles)
+                {
+                    _settings.WriteSubtitles = writeSubtitlesOption.Value;
+                    Debug.WriteLine($"Write subtitles updated to: {_settings.WriteSubtitles}");
+                }
+
+                var writeAutoSubtitlesOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "WriteAutoSubtitles");
+                if (writeAutoSubtitlesOption != null && writeAutoSubtitlesOption.Value != _settings.WriteAutoSubtitles)
+                {
+                    _settings.WriteAutoSubtitles = writeAutoSubtitlesOption.Value;
+                    Debug.WriteLine($"Write auto subtitles updated to: {_settings.WriteAutoSubtitles}");
+                }
+
+                var downloadAllSubtitlesOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "DownloadAllSubtitles");
+                if (downloadAllSubtitlesOption != null && downloadAllSubtitlesOption.Value != _settings.DownloadAllSubtitles)
+                {
+                    _settings.DownloadAllSubtitles = downloadAllSubtitlesOption.Value;
+                    Debug.WriteLine($"Download all subtitles updated to: {_settings.DownloadAllSubtitles}");
+                }
+
+                var embedSubtitlesOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "EmbedSubtitles");
+                if (embedSubtitlesOption != null && embedSubtitlesOption.Value != _settings.EmbedSubtitles)
+                {
+                    _settings.EmbedSubtitles = embedSubtitlesOption.Value;
+                    Debug.WriteLine($"Embed subtitles updated to: {_settings.EmbedSubtitles}");
+                }
+
+                var subtitleLanguagesOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "SubtitleLanguages");
+                if (subtitleLanguagesOption != null && subtitleLanguagesOption.TextValue != _settings.SubtitleLanguages)
+                {
+                    _settings.SubtitleLanguages = subtitleLanguagesOption.TextValue?.Trim() ?? "";
+                    Debug.WriteLine($"Subtitle languages updated to: {_settings.SubtitleLanguages}");
+                }
+
+                var subtitleFormatOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "SubtitleFormat");
+                if (subtitleFormatOption != null && !string.IsNullOrWhiteSpace(subtitleFormatOption.TextValue))
+                {
+                    var newFormat = subtitleFormatOption.TextValue.Trim().ToLower();
+                    var allowedFormats = new[] { "srt", "vtt", "ass", "lrc", "ttml", "sbv" };
+                    if (allowedFormats.Contains(newFormat) && newFormat != _settings.SubtitleFormat.ToLower())
+                    {
+                        _settings.SubtitleFormat = newFormat;
+                        Debug.WriteLine($"Subtitle format updated to: {_settings.SubtitleFormat}");
+                    }
+                    else if (!allowedFormats.Contains(newFormat))
+                    {
+                        Debug.WriteLine($"Invalid subtitle format: {newFormat}. Allowed: {string.Join(", ", allowedFormats)}");
+                    }
+                }
+
                 // Always save settings after any change
                 SaveSettings();
                 Debug.WriteLine("Settings update completed and saved");
@@ -1346,5 +1676,14 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         public bool UseVideoIdInFilename { get; set; } = true; // Use video ID for unique filenames
         public bool ShowCommandWindow { get; set; } = false; // Show command window during downloads
         public bool AutoOpenFolder { get; set; } = true; // Automatically open download folder after successful download
+        
+        // Enhanced subtitle settings
+        public bool AlwaysDownloadSubtitles { get; set; } = false; // Always download subtitles with videos
+        public bool WriteSubtitles { get; set; } = true; // Write subtitle files
+        public bool WriteAutoSubtitles { get; set; } = true; // Write auto-generated subtitles if manual aren't available
+        public bool DownloadAllSubtitles { get; set; } = false; // Download all available subtitle languages
+        public string SubtitleLanguages { get; set; } = "en,uk,ru"; // Preferred subtitle languages (comma-separated)
+        public string SubtitleFormat { get; set; } = "srt"; // Subtitle format: srt, vtt, ass, etc.
+        public bool EmbedSubtitles { get; set; } = false; // Embed subtitles in video file (for supported formats)
     }
 }
