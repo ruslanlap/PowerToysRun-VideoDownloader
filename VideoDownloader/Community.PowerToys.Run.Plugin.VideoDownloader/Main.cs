@@ -90,6 +90,8 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     results.Add(new Result { Title = $"🎵 Download Audio Only", SubTitle = $"Format: {_settings.AudioFormat.ToUpper()}. Safe filename handling enabled.", IcoPath = _iconPath, Action = _ => { DownloadAudio(search); return true; } });
                 }
 
+                results.Add(new Result { Title = $"💬 Download Video with Subtitles", SubTitle = $"Quality: {_settings.DefaultVideoQuality}. Safe filename handling with subtitles.", IcoPath = _iconPath, Action = _ => { DownloadVideoWithSubtitles(search); return true; } });
+
                 var qualityOptions = new[] { "1080p", "720p", "480p", "360p", "best" };
                 foreach (var quality in qualityOptions.Where(q => q != _settings.DefaultVideoQuality))
                 {
@@ -244,6 +246,8 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
         private void DownloadVideo(string url) => DownloadWithQuality(url, _settings.DefaultVideoQuality);
 
+        private void DownloadVideoWithSubtitles(string url) => DownloadWithQuality(url, _settings.DefaultVideoQuality, true);
+
         private void DownloadAudio(string url)
         {
             Task.Run(() =>
@@ -300,7 +304,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             });
         }
 
-        private void DownloadWithQuality(string url, string quality)
+        private void DownloadWithQuality(string url, string quality, bool downloadSubtitles = false)
         {
             Task.Run(() =>
             {
@@ -330,6 +334,16 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         "-o", $"\"{outputTemplate}\""
                     };
 
+                    if (downloadSubtitles)
+                    {
+                        commandParts.AddRange(new[]
+                        {
+                            "--write-subs",
+                            "--write-auto-subs",
+                            "--all-subs",
+                            "--convert-subs", "srt"
+                        });
+                    }
 
                     commandParts.Add($"\"{url}\"");
 

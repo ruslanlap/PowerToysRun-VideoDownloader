@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Added option to download videos with subtitles on demand
+
 ## [1.0.9] - 2025-07-11
 ### 🚀 Performance & Stability
 - **Performance improvements:** Faster download speeds and reduced memory usage
