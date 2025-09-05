@@ -12,8 +12,8 @@
     <AssemblyTitle>Community.PowerToys.Run.Plugin.VideoDownloader</AssemblyTitle>
     <AssemblyDescription>PowerToys Run plugin for downloading videos</AssemblyDescription>
     <Copyright>Copyright © 2025</Copyright>
-    <AssemblyVersion>1.0.10</AssemblyVersion>
-    <FileVersion>1.0.10</FileVersion>
+    <AssemblyVersion>1.0.11</AssemblyVersion>
+    <FileVersion>1.0.11</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
