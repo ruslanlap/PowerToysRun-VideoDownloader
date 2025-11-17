@@ -18,7 +18,20 @@
 [![Awesome](https://awesome.re/mentioned-badge.svg)](https://github.com/hlaueriksson/awesome-powertoys-run-plugins)
 
 [🚀 Quick Install](#-installation) · [📖 Usage Guide](#-usage) · [⚙️ Configuration](#️-configuration) · [❓ FAQ](#-faq)
-  
+
+---
+
+### 📥 Download Latest Release
+
+<div align="center">
+
+[![Download for x64](<https://img.shields.io/badge/Download-x64%20(Intel%2FAMD)-0078D4?style=for-the-badge&logo=windows&logoColor=white>)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.11-x64.zip)
+[![Download for ARM64](<https://img.shields.io/badge/Download-ARM64%20(Qualcomm)-50FA7B?style=for-the-badge&logo=windows&logoColor=white>)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.11-ARM64.zip)
+
+**Latest Version: v1.0.11** | [View All Releases](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases)
+
+</div>
+
 </div>
 
 ---
@@ -54,14 +67,14 @@
 ### Quick Install
 
 1. **Download** the latest release:
-   - [x64 Release](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.11-x64.zip)
-   - [ARM64 Release](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.11-ARM64.zip)
+    - [x64 Release](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.11-x64.zip)
+    - [ARM64 Release](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.11-ARM64.zip)
 
 2. **Extract** to:
 
-   ```
-   %LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\
-   ```
+    ```
+    %LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\
+    ```
 
 3. **Restart** PowerToys (right-click tray icon → Exit, then relaunch)
 
@@ -90,20 +103,20 @@ dl https://www.youtube.com/watch?v=dQw4w9WgXcQ
 
 ### Available Options
 
-| Command | Description |
-|---------|-------------|
-| `dl [URL]` | Download best quality video |
-| Select "Audio Only (MP3)" | Extract audio as MP3 |
-| Select "Video Information" | Preview available formats |
-| Select "Open Download Folder" | Open downloads location |
+| Command                       | Description                 |
+| ----------------------------- | --------------------------- |
+| `dl [URL]`                    | Download best quality video |
+| Select "Audio Only (MP3)"     | Extract audio as MP3        |
+| Select "Video Information"    | Preview available formats   |
+| Select "Open Download Folder" | Open downloads location     |
 
 ### Examples
 
 <div align="center">
 
 | ![Demo 1](assets/demo1.png) | ![Demo 2](assets/demo2.png) | ![Demo 3](assets/demo3.png) |
-|:--:|:--:|:--:|
-| Basic download | Audio extraction | Format selection |
+| :-------------------------: | :-------------------------: | :-------------------------: |
+|       Basic download        |      Audio extraction       |      Format selection       |
 
 </div>
 
@@ -170,24 +183,28 @@ PowerToysRun-VideoDownloader/
 <summary><b>Which sites are supported?</b></summary>
 
 YouTube, Vimeo, Twitch, TikTok, and [1000+ more](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) via yt-dlp.
+
 </details>
 
 <details>
 <summary><b>Can I download 4K videos?</b></summary>
 
 Yes, if the source provides 4K and your download location has sufficient space.
+
 </details>
 
 <details>
 <summary><b>Does it work with playlists?</b></summary>
 
 Yes, paste a playlist URL and it'll download all videos sequentially.
+
 </details>
 
 <details>
 <summary><b>Is it legal?</b></summary>
 
 Downloading copyrighted content without permission violates most platforms' ToS. Use responsibly and only for content you have rights to download.
+
 </details>
 
 <details>
@@ -204,25 +221,27 @@ Downloading copyrighted content without permission violates most platforms' ToS.
 <summary><b>Download fails with "yt-dlp not found"?</b></summary>
 
 The plugin auto-downloads yt-dlp on first use. Ensure internet connectivity and try again.
+
 </details>
 
 <details>
 <summary><b>How do I update yt-dlp?</b></summary>
 
 The plugin checks for yt-dlp updates automatically. You can manually update by deleting the yt-dlp binary from the plugin folder—it'll re-download latest on next use.
+
 </details>
 
 ---
 
 ## 🛠️ Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| **Plugin not appearing** | Extract to correct folder, restart PowerToys |
-| **Download hangs** | Check internet connection, try different quality |
-| **"Video unavailable"** | Site may block downloads or require login |
-| **Slow downloads** | Try lower quality or check bandwidth |
-| **yt-dlp errors** | Delete `yt-dlp.exe` from plugin folder to trigger re-download |
+| Issue                    | Solution                                                      |
+| ------------------------ | ------------------------------------------------------------- |
+| **Plugin not appearing** | Extract to correct folder, restart PowerToys                  |
+| **Download hangs**       | Check internet connection, try different quality              |
+| **"Video unavailable"**  | Site may block downloads or require login                     |
+| **Slow downloads**       | Try lower quality or check bandwidth                          |
+| **yt-dlp errors**        | Delete `yt-dlp.exe` from plugin folder to trigger re-download |
 
 Still stuck? [Open an issue](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/issues) with:
 
