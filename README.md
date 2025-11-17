@@ -26,7 +26,7 @@
 <div align="center">
 
 [![Download for x64](https://img.shields.io/badge/Download-x64%20-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.11-x64.zip)
-[![Download for ARM64](<https://img.shields.io/badge/Download-ARM64%20(ARM64)-50FA7B?style=for-the-badge&logo=windows&logoColor=white>)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.11-ARM64.zip)
+[![Download for ARM64](https://img.shields.io/badge/Download-ARM64%20-50FA7B?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.11-ARM64.zip)
 
 **Latest Version: v1.0.11** | [View All Releases](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases)
 
