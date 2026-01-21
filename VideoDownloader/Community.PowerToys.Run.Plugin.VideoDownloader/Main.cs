@@ -447,44 +447,79 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
         private string GetSafeOutputTemplate(string quality = "")
         {
-            var template = _settings.CustomFilenameTemplate;
-            
-            if (string.IsNullOrWhiteSpace(template))
+            // If custom template provided, use it as-is
+            if (!string.IsNullOrWhiteSpace(_settings.CustomFilenameTemplate))
             {
-                // Enhanced filename template with conflict resolution
-                var titlePart = "%(title).100B"; // Shorter title to avoid long paths
-                var qualityPart = "";
-                var idPart = "";
-                var datePart = "";
-                
-                if (_settings.IncludeQualityInFilename && !string.IsNullOrEmpty(quality) && quality != "audio")
-                {
-                    qualityPart = "_[%(height)sp]";
-                }
-                else if (quality == "audio")
-                {
-                    qualityPart = "_[Audio]";
-                }
-                
-                // Always include video ID to prevent conflicts - this was missing in v1.08
-                if (_settings.UseVideoIdInFilename)
-                {
-                    idPart = "_[%(id)s]";
-                }
-                else
-                {
-                    // If user doesn't want video ID, use date+time for uniqueness
-                    var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                    datePart = $"_{timestamp}";
-                }
-                
-                // Build safe template that prevents conflicts
-                template = $"{titlePart}{qualityPart}{idPart}{datePart}.%(ext)s";
+                var customPath = Path.Combine(_settings.DownloadPath, _settings.CustomFilenameTemplate);
+                Debug.WriteLine($"Using custom template: {customPath}");
+                return customPath;
             }
 
+            // Build template from individual components
+            var components = new List<string>();
+            
+            // Base title (always included)
+            components.Add("%(title).100B");
+            
+            // Quality component (conditional on IncludeQualityInFilename setting)
+            if (_settings.IncludeQualityInFilename)
+            {
+                if (quality == "audio")
+                {
+                    components.Add("[Audio]");
+                }
+                else if (!string.IsNullOrEmpty(quality) && quality != "best")
+                {
+                    components.Add("[%(height)sp]");
+                }
+            }
+            
+            // Video ID component (conditional on UseVideoIdInFilename setting)
+            if (_settings.UseVideoIdInFilename)
+            {
+                components.Add("[%(id)s]");
+            }
+            
+            // Uniqueness fallback (when video ID not used but overwrites prevented)
+            if (!_settings.UseVideoIdInFilename && _settings.PreventFileOverwrites)
+            {
+                var timestamp = GenerateCollisionResistantTimestamp();
+                components.Add($"[{timestamp}]");
+            }
+            
+            // Combine components with underscores and add extension
+            var template = string.Join("_", components) + ".%(ext)s";
+            
             var fullPath = Path.Combine(_settings.DownloadPath, template);
-            Debug.WriteLine($"Output template: {fullPath}");
+            Debug.WriteLine($"Generated template: {fullPath}");
             return fullPath;
+        }
+
+        /// <summary>
+        /// Generates a collision-resistant timestamp for filename uniqueness.
+        /// Uses UTC time with millisecond precision plus a random component to minimize collision risk.
+        /// Format: yyyyMMdd_HHmmss_fff_xxxx where xxxx is a 4-character random suffix.
+        /// </summary>
+        /// <returns>A collision-resistant timestamp string suitable for filenames</returns>
+        private string GenerateCollisionResistantTimestamp()
+        {
+            // Use UTC to avoid timezone and DST issues
+            var utcNow = DateTime.UtcNow;
+            
+            // Base timestamp with millisecond precision
+            var baseTimestamp = utcNow.ToString("yyyyMMdd_HHmmss_fff");
+            
+            // Add random suffix to further reduce collision probability
+            // Using alphanumeric characters safe for filenames
+            var random = new Random();
+            const string chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            var randomSuffix = new char[4];
+            for (int i = 0; i < 4; i++)
+            {
+                randomSuffix[i] = chars[random.Next(chars.Length)];
+            }
+            
+            return $"{baseTimestamp}_{new string(randomSuffix)}";
         }
 
         private void OpenDownloadFolder()
