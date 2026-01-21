@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [1.0.12] - 2025-01-21
+### 🐛 Bug Fixes
+- **Filename Formatting:** Removed restrictive ASCII-only filename conversion - filenames now preserve spaces instead of replacing them with underscores
+- Files downloaded now match native yt-dlp behavior while remaining Windows-compatible
+
 ## [1.0.11] - 2025-01-27
 ### ✨ New Features
 - Added option to download videos with subtitles on demand

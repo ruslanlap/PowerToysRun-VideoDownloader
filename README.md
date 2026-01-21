@@ -25,10 +25,10 @@
 
 <div align="center">
 
-[![Download for x64](https://img.shields.io/badge/Download-x64%20-50FA7B?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.11-x64.zip)
-[![Download for ARM64](https://img.shields.io/badge/Download-ARM64%20-50FA7B?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.11-ARM64.zip)
+[![Download for x64](https://img.shields.io/badge/Download-x64%20-50FA7B?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.12-x64.zip)
+[![Download for ARM64](https://img.shields.io/badge/Download-ARM64%20-50FA7B?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.12-ARM64.zip)
 
-**Latest Version: v1.0.11** | [View All Releases](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases)
+**Latest Version: v1.0.12** | [View All Releases](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases)
 
 </div>
 
@@ -67,8 +67,8 @@
 ### Quick Install
 
 1. **Download** the latest release:
-    - [x64 Release](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.11-x64.zip)
-    - [ARM64 Release](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.11-ARM64.zip)
+    - [x64 Release](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.12-x64.zip)
+    - [ARM64 Release](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.12-ARM64.zip)
 
 2. **Extract** to:
 
@@ -253,7 +253,12 @@ Still stuck? [Open an issue](https://github.com/ruslanlap/PowerToysRun-VideoDown
 
 ## 📝 Changelog
 
-### v1.0.11 (Latest)
+### v1.0.12 (Latest)
+
+- 🐛 Fixed filename formatting - now preserves spaces instead of replacing with underscores
+- ✨ Filenames now match native yt-dlp behavior while remaining Windows-compatible
+
+### v1.0.11
 
 - ✨ Added subtitle download option
 - ⚡ Improved download speed

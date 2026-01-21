@@ -282,7 +282,6 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         "--audio-format", _settings.AudioFormat,
                         "--audio-quality", _settings.AudioQuality.ToString(),
                         _settings.PreventFileOverwrites ? "--no-overwrites" : "",
-                        "--restrict-filenames", // Use safe ASCII filenames
                         "--windows-filenames", // Ensure Windows compatibility
                         "--ignore-config", // Avoid user/global yt-dlp configs breaking the plugin
                         "--no-playlist",
@@ -337,7 +336,6 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         "-f", $"\"{format}\"",
                         "--merge-output-format", _settings.VideoFormat,
                         _settings.PreventFileOverwrites ? "--no-overwrites" : "",
-                        "--restrict-filenames", // Use safe ASCII filenames
                         "--windows-filenames", // Ensure Windows compatibility
                         "--ignore-config", // Avoid user/global yt-dlp configs breaking the plugin
                         "--no-playlist",
@@ -986,7 +984,6 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         "--skip-download", // Only download subtitles, not the video
                         "--ignore-errors", // Continue even if some subtitle languages fail
                         _settings.PreventFileOverwrites ? "--no-overwrites" : "",
-                        "--restrict-filenames",
                         "--windows-filenames",
                         "--ignore-config",
                         "--no-playlist",
