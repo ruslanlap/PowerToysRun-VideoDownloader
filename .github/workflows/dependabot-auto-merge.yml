@@ -2,6 +2,7 @@ name: Dependabot Auto-Merge
 
 on:
   pull_request:
+  workflow_dispatch:
     branches: [master, main]
   pull_request_review:
     branches: [master, main]
