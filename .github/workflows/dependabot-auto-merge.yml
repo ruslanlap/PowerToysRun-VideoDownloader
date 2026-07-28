@@ -1,0 +1,111 @@
+name: Dependabot Auto-Merge
+
+on:
+  pull_request:
+    branches: [master, main]
+  pull_request_review:
+    branches: [master, main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+jobs:
+  # Job 1: Dependabot opens a PR → fetch metadata, wait for CI, auto-merge safe updates
+  dependabot-pr:
+    if: github.event_name == 'pull_request' && (github.actor == 'dependabot[bot]' || github.actor == 'app/dependabot')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: '${{ secrets.GITHUB_TOKEN }}'
+
+      - name: Wait for all CI checks
+        id: wait
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 15
+          running-workflow-name: 'Dependabot Auto-Merge'
+
+      # CI PASSED → handle based on bump type
+      - name: 🟢 Auto-merge patch/minor (CI green)
+        if: success() &&
+            (steps.metadata.outputs.update-type == 'version-update:semver-patch' ||
+             steps.metadata.outputs.update-type == 'version-update:semver-minor')
+        run: |
+          echo "✅ CI passed — auto-merging ${{ steps.metadata.outputs.update-type }}"
+          gh pr merge "$PR_URL" --squash --delete-branch
+          echo "✅ Merged successfully"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🟡 Major bump → request Copilot review
+        if: success() && steps.metadata.outputs.update-type == 'version-update:semver-major'
+        run: |
+          echo "⚠️ Major bump — requesting Copilot AI review..."
+          gh pr comment "$PR_URL" --body "/copilot review
+
+          ⚠️ **Major version bump** (\`${{ steps.metadata.outputs.update-type }}\`).
+          Copilot AI review requested. Will auto-merge on approval."
+          gh pr edit "$PR_URL" --add-label "major-bump"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # CI FAILED → close the PR
+      - name: 🔴 Close PR on CI failure
+        if: failure()
+        run: |
+          gh pr close "$PR_URL" --delete-branch --comment "🔧 Auto-closed: CI failed for \`${{ steps.metadata.outputs.update-type || 'dependency' }}\` bump. Needs manual attention."
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Job 2: Copilot submits a review → auto-merge if approved, flag if changes requested
+  copilot-review:
+    if: |
+      github.event_name == 'pull_request_review' &&
+      github.event.review.user.login == 'copilot-pull-request-reviewer[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if PR is from Dependabot
+        id: check
+        run: |
+          PR_AUTHOR=$(gh pr view "$PR_URL" --json author --jq '.author.login')
+          echo "pr_author=$PR_AUTHOR" >> $GITHUB_OUTPUT
+          if [ "$PR_AUTHOR" = "dependabot[bot]" ]; then
+            echo "is_dependabot=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_dependabot=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🟢 Auto-merge on Copilot approval
+        if: |
+          steps.check.outputs.is_dependabot == 'true' &&
+          github.event.review.state == 'APPROVED'
+        run: |
+          echo "✅ Copilot approved — auto-merging"
+          gh pr merge "$PR_URL" --squash --delete-branch
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🟠 Flag for manual review on Copilot changes requested
+        if: |
+          steps.check.outputs.is_dependabot == 'true' &&
+          github.event.review.state == 'CHANGES_REQUESTED'
+        run: |
+          gh pr comment "$PR_URL" --body "❌ **Copilot requested changes** — manual review needed for this major bump."
+          gh pr edit "$PR_URL" --add-label "needs-manual-review"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
