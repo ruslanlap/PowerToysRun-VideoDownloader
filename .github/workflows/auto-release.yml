@@ -3,6 +3,11 @@ name: Auto Release
 # Bumps plugin.json version on every push to master, tags vX.Y.Z,
 # and pushes the tag — build-and-release.yml (tag-triggered) does the
 # build + GitHub release with assets. No-op when nothing changed.
+#
+# Uses RELEASE_PAT (a PAT) for the commit+tag push: GITHUB_TOKEN-created
+# events do not trigger other workflows. Loop protection: the release
+# commit carries "chore(release): vX.Y.Z" and the skip step detects HEAD
+# being such a commit whose version already equals the computed next.
 
 on:
   push:
@@ -24,21 +29,36 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Skip if HEAD is already a release commit
+        id: gate
+        run: |
+          if git log -1 --format=%s | grep -qE '^chore\(release\): v'; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "HEAD is a release commit — skipping (loop protection)"
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Read current version
+        if: steps.gate.outputs.skip == 'false'
         id: current
         run: |
           V=$(jq -r '.Version' VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/plugin.json)
           echo "version=$V" >> $GITHUB_OUTPUT
 
       - name: Compute next version
+        if: steps.gate.outputs.skip == 'false'
         id: next
         run: |
           V="${{ steps.current.outputs.version }}"
           MAJOR=$(echo "$V" | cut -d. -f1)
           MINOR=$(echo "$V" | cut -d. -f2)
           PATCH=$(echo "$V" | cut -d. -f3)
-          # feat: → minor bump, everything else → patch bump
-          if git log "$(git describe --tags --abbrev=0 2>/dev/null || echo '')"..HEAD --oneline 2>/dev/null | grep -qiE '^[0-9a-f]+ (feat|feature)(\(|:)'; then
+          # feat: → minor bump, everything else → patch bump.
+          # Conventional-commit type anchored to start of subject.
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -n "$LAST_TAG" ]; then RANGE="$LAST_TAG..HEAD"; else RANGE="HEAD"; fi
+          if git log $RANGE --format=%s | grep -qE '^(feat|feature)(\(|:)'; then
             MINOR=$((MINOR+1)); PATCH=0
           else
             PATCH=$((PATCH+1))
@@ -48,17 +68,21 @@ jobs:
           echo "Next version: $NEW"
 
       - name: Skip if tag already exists
+        if: steps.gate.outputs.skip == 'false'
         id: check
         run: |
-          if git rev-parse "v${{ steps.next.outputs.version }}" >/dev/null 2>&1; then
+          NEW="${{ steps.next.outputs.version }}"
+          if git rev-parse "v$NEW" >/dev/null 2>&1; then
             echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Tag v${{ steps.next.outputs.version }} already exists — skipping"
+            echo "Tag v$NEW already exists — skipping"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Bump plugin.json, commit and tag
-        if: steps.check.outputs.exists == 'false'
+        if: steps.gate.outputs.skip == 'false' && steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
           NEW="${{ steps.next.outputs.version }}"
           FILE="VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/plugin.json"
@@ -66,7 +90,19 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$FILE"
-          git commit -m "chore(release): v$NEW [skip ci]"
+          git commit -m "chore(release): v$NEW"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # Push master first; only publish the tag once the commit is on
+          # master. If the branch push fails, no tag exists and the next
+          # run recomputes the same version — self-healing, no lost release.
           git push origin HEAD:master
+          # Re-verify we are still exactly one push ahead of origin/master;
+          # if master moved, fail loudly instead of tagging a dangling commit.
+          git fetch origin master
+          MERGE_BASE=$(git merge-base HEAD origin/master)
+          if [ "$MERGE_BASE" != "$(git rev-parse origin/master)" ]; then
+            echo "::error::master advanced during run — rerun to retry"
+            exit 1
+          fi
           git tag "v$NEW"
           git push origin "v$NEW"
