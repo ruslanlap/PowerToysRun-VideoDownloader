@@ -1,0 +1,72 @@
+name: Auto Release
+
+# Bumps plugin.json version on every push to master, tags vX.Y.Z,
+# and pushes the tag — build-and-release.yml (tag-triggered) does the
+# build + GitHub release with assets. No-op when nothing changed.
+
+on:
+  push:
+    branches: [ master ]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Read current version
+        id: current
+        run: |
+          V=$(jq -r '.Version' VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/plugin.json)
+          echo "version=$V" >> $GITHUB_OUTPUT
+
+      - name: Compute next version
+        id: next
+        run: |
+          V="${{ steps.current.outputs.version }}"
+          MAJOR=$(echo "$V" | cut -d. -f1)
+          MINOR=$(echo "$V" | cut -d. -f2)
+          PATCH=$(echo "$V" | cut -d. -f3)
+          # feat: → minor bump, everything else → patch bump
+          if git log "$(git describe --tags --abbrev=0 2>/dev/null || echo '')"..HEAD --oneline 2>/dev/null | grep -qiE '^[0-9a-f]+ (feat|feature)(\(|:)'; then
+            MINOR=$((MINOR+1)); PATCH=0
+          else
+            PATCH=$((PATCH+1))
+          fi
+          NEW="$MAJOR.$MINOR.$PATCH"
+          echo "version=$NEW" >> $GITHUB_OUTPUT
+          echo "Next version: $NEW"
+
+      - name: Skip if tag already exists
+        id: check
+        run: |
+          if git rev-parse "v${{ steps.next.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Tag v${{ steps.next.outputs.version }} already exists — skipping"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump plugin.json, commit and tag
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          NEW="${{ steps.next.outputs.version }}"
+          FILE="VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/plugin.json"
+          jq --arg v "$NEW" '.Version = $v' "$FILE" > tmp.json && mv tmp.json "$FILE"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$FILE"
+          git commit -m "chore(release): v$NEW [skip ci]"
+          git push origin HEAD:master
+          git tag "v$NEW"
+          git push origin "v$NEW"
