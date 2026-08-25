@@ -78,7 +78,8 @@ jobs:
           # Conventional-commit type anchored to start of subject.
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
           if [ -n "$LAST_TAG" ]; then RANGE="$LAST_TAG..HEAD"; else RANGE="HEAD"; fi
-          if git log $RANGE --format=%s | grep -iE "^(feat|feature)(\(|:)" >/dev/null ; then
+          SUBJECTS="$(git log "$RANGE" --format=%s)"
+          if grep -qiE "^(feat|feature)(\(|:)" <<< "$SUBJECTS"; then
             MINOR=$((MINOR+1)); PATCH=0
           else
             PATCH=$((PATCH+1))
@@ -115,10 +116,12 @@ jobs:
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push origin HEAD:master
           git fetch origin master
-          MERGE_BASE=$(git merge-base HEAD origin/master)
-          if [ "$MERGE_BASE" != "$(git rev-parse origin/master)" ]; then
-            echo "::error::master advanced during run — rerun to retry"
+          if ! git merge-base --is-ancestor HEAD origin/master; then
+            echo "::error::master no longer contains the release commit — refusing to tag"
             exit 1
           fi
+          # A later push may have advanced master while the release commit was
+          # being published. The release commit is still an ancestor, so tag it
+          # now rather than relying on a queued recovery run that can be replaced.
           git tag "v$NEW"
           git push origin "v$NEW"
