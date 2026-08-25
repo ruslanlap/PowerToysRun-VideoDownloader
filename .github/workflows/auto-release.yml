@@ -3,6 +3,9 @@ name: Auto Release
 # Bumps plugin.json version on every push to master, tags vX.Y.Z,
 # and pushes the tag — build-and-release.yml (tag-triggered) does the
 # build + GitHub release with assets. No-op when nothing changed.
+#
+# Loop protection: HEAD being a "chore(release):" commit skips everything
+# UNLESS its tag is missing — then we re-publish the tag (recovery path).
 
 on:
   push:
@@ -23,22 +26,59 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
+      - name: Classify HEAD (new work vs release commit)
+        id: gate
+        run: |
+          SUBJECT=$(git log -1 --format=%s)
+          if echo "$SUBJECT" | grep -qE '^chore\(release\): v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            V=$(jq -r '.Version' VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/plugin.json)
+            echo "mode=release-commit" >> $GITHUB_OUTPUT
+            echo "version=$V" >> $GITHUB_OUTPUT
+            echo "HEAD is release commit for v$V"
+          else
+            echo "mode=new-work" >> $GITHUB_OUTPUT
+            echo "HEAD is new work"
+          fi
+
+      - name: Recovery — publish tag missing from a release commit
+        if: steps.gate.outputs.mode == 'release-commit'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+        run: |
+          NEW="${{ steps.gate.outputs.version }}"
+          git config http.https://github.com/.extraheader ""
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git rev-parse "v$NEW" >/dev/null 2>&1 && git ls-remote --tags origin "refs/tags/v$NEW" | grep -q "v$NEW"; then
+            echo "Tag v$NEW already on remote — nothing to do"
+            exit 0
+          fi
+          echo "Tag v$NEW missing on remote — publishing it now"
+          git tag -f "v$NEW"
+          git push origin "v$NEW"
+
+      # --- new-work path ---
       - name: Read current version
+        if: steps.gate.outputs.mode == 'new-work'
         id: current
         run: |
           V=$(jq -r '.Version' VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/plugin.json)
           echo "version=$V" >> $GITHUB_OUTPUT
 
       - name: Compute next version
+        if: steps.gate.outputs.mode == 'new-work'
         id: next
         run: |
           V="${{ steps.current.outputs.version }}"
           MAJOR=$(echo "$V" | cut -d. -f1)
           MINOR=$(echo "$V" | cut -d. -f2)
           PATCH=$(echo "$V" | cut -d. -f3)
-          # feat: → minor bump, everything else → patch bump
-          if git log "$(git describe --tags --abbrev=0 2>/dev/null || echo '')"..HEAD --oneline 2>/dev/null | grep -qiE '^[0-9a-f]+ (feat|feature)(\(|:)'; then
+          # feat: → minor bump, everything else → patch bump.
+          # Conventional-commit type anchored to start of subject.
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -n "$LAST_TAG" ]; then RANGE="$LAST_TAG..HEAD"; else RANGE="HEAD"; fi
+          if git log $RANGE --format=%s | grep -qiE '^(feat|feature)(\(|:)'); then
             MINOR=$((MINOR+1)); PATCH=0
           else
             PATCH=$((PATCH+1))
@@ -48,17 +88,21 @@ jobs:
           echo "Next version: $NEW"
 
       - name: Skip if tag already exists
+        if: steps.gate.outputs.mode == 'new-work'
         id: check
         run: |
-          if git rev-parse "v${{ steps.next.outputs.version }}" >/dev/null 2>&1; then
+          NEW="${{ steps.next.outputs.version }}"
+          if git rev-parse "v$NEW" >/dev/null 2>&1; then
             echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Tag v${{ steps.next.outputs.version }} already exists — skipping"
+            echo "Tag v$NEW already exists — skipping"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Bump plugin.json, commit and tag
-        if: steps.check.outputs.exists == 'false'
+      - name: Bump plugin.json, commit, push master, tag
+        if: steps.gate.outputs.mode == 'new-work' && steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
           NEW="${{ steps.next.outputs.version }}"
           FILE="VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/plugin.json"
@@ -66,7 +110,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$FILE"
-          git commit -m "chore(release): v$NEW [skip ci]"
+          git commit -m "chore(release): v$NEW"
+          git config http.https://github.com/.extraheader ""
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           git push origin HEAD:master
+          git fetch origin master
+          MERGE_BASE=$(git merge-base HEAD origin/master)
+          if [ "$MERGE_BASE" != "$(git rev-parse origin/master)" ]; then
+            echo "::error::master advanced during run — rerun to retry"
+            exit 1
+          fi
           git tag "v$NEW"
           git push origin "v$NEW"
