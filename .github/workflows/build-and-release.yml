@@ -295,4 +295,4 @@ jobs:
             release-artifacts/VideoDownloader-${{ steps.get_version.outputs.VERSION }}-ARM64.zip.sha256
             release-artifacts/checksums.txt
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
