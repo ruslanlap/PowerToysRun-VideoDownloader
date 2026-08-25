@@ -78,8 +78,8 @@ jobs:
           # Conventional-commit type anchored to start of subject.
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
           if [ -n "$LAST_TAG" ]; then RANGE="$LAST_TAG..HEAD"; else RANGE="HEAD"; fi
-          FEATURE_COMMIT="$(git log "$RANGE" --format=%H --extended-regexp --regexp-ignore-case --grep='^(feat|feature)(\(|:)' --max-count=1)"
-          if [ -n "$FEATURE_COMMIT" ]; then
+          SUBJECTS="$(git log "$RANGE" --format=%s)"
+          if grep -qiE '^(feat|feature)(\(|:)' <<< "$SUBJECTS"; then
             MINOR=$((MINOR+1)); PATCH=0
           else
             PATCH=$((PATCH+1))
