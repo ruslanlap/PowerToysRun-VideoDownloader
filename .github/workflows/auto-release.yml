@@ -79,7 +79,7 @@ jobs:
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
           if [ -n "$LAST_TAG" ]; then RANGE="$LAST_TAG..HEAD"; else RANGE="HEAD"; fi
           SUBJECTS="$(git log "$RANGE" --format=%s)"
-          if grep -qiE '^(feat|feature)(\(|:)' <<< "$SUBJECTS"; then
+          if grep -qiE "^(feat|feature)(\(|:)" <<< "$SUBJECTS"; then
             MINOR=$((MINOR+1)); PATCH=0
           else
             PATCH=$((PATCH+1))
