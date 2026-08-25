@@ -3,6 +3,10 @@ name: Auto Release
 # Bumps plugin.json version on every push to master, tags vX.Y.Z,
 # and pushes the tag — build-and-release.yml (tag-triggered) does the
 # build + GitHub release with assets. No-op when nothing changed.
+#
+# Uses RELEASE_PAT (a PAT) for the commit+tag push: GITHUB_TOKEN-created
+# events do not trigger other workflows. The release commit must NOT
+# contain [skip ci] — GitHub honours it for tag pushes too.
 
 on:
   push:
@@ -38,7 +42,9 @@ jobs:
           MINOR=$(echo "$V" | cut -d. -f2)
           PATCH=$(echo "$V" | cut -d. -f3)
           # feat: → minor bump, everything else → patch bump
-          if git log "$(git describe --tags --abbrev=0 2>/dev/null || echo '')"..HEAD --oneline 2>/dev/null | grep -qiE '^[0-9a-f]+ (feat|feature)(\(|:)'; then
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          if [ -n "$LAST_TAG" ]; then RANGE="$LAST_TAG..HEAD"; else RANGE="HEAD"; fi
+          if git log $RANGE --oneline | grep -qiE '\bfeat(\(|:|\b)'; then
             MINOR=$((MINOR+1)); PATCH=0
           else
             PATCH=$((PATCH+1))
@@ -47,18 +53,26 @@ jobs:
           echo "version=$NEW" >> $GITHUB_OUTPUT
           echo "Next version: $NEW"
 
-      - name: Skip if tag already exists
+      - name: Skip if tag already exists or version unchanged
         id: check
         run: |
-          if git rev-parse "v${{ steps.next.outputs.version }}" >/dev/null 2>&1; then
+          NEW="${{ steps.next.outputs.version }}"
+          CUR="${{ steps.current.outputs.version }}"
+          if git rev-parse "v$NEW" >/dev/null 2>&1; then
             echo "exists=true" >> $GITHUB_OUTPUT
-            echo "Tag v${{ steps.next.outputs.version }} already exists — skipping"
+            echo "Tag v$NEW already exists — skipping"
+          elif [ "$NEW" = "$CUR" ] && git log -1 --format=%s | grep -q 'chore(release)'; then
+            # HEAD is our own release commit (re-run after partial failure) — skip
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "HEAD is already a release commit for v$NEW — skipping"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Bump plugin.json, commit and tag
         if: steps.check.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
           NEW="${{ steps.next.outputs.version }}"
           FILE="VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/plugin.json"
@@ -66,7 +80,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$FILE"
-          git commit -m "chore(release): v$NEW [skip ci]"
-          git push origin HEAD:master
+          git commit -m "chore(release): v$NEW"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # Tag first so a failure here leaves master untouched (no skipped versions)
           git tag "v$NEW"
           git push origin "v$NEW"
+          git push origin HEAD:master
