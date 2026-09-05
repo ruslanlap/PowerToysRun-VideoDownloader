@@ -216,6 +216,7 @@ jobs:
         with:
           name: installer-${{ matrix.platform }}
           path: installer/out/*.exe
+          if-no-files-found: error
   
   release:
     needs: [build, installer]
