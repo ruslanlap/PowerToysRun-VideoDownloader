@@ -172,9 +172,52 @@ jobs:
         with:
           name: build-artifacts-${{ matrix.platform }}
           path: artifacts/*.zip
+
+  # winget requires an installer executable (InstallerType: zip cannot host a
+  # plugin DLL payload). Pack the built plugin into per-platform Inno Setup
+  # setups that install into the PowerToys Run plugins directory.
+  installer:
+    needs: build
+    runs-on: windows-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    strategy:
+      matrix:
+        platform: [x64, arm64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Download platform artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: build-artifacts-${{ matrix.platform }}
+          path: artifacts
+
+      - name: Extract payload
+        shell: pwsh
+        run: |
+          Expand-Archive -Path "artifacts/VideoDownloader-${{ steps.get_version.outputs.VERSION }}-${{ matrix.platform }}.zip" -DestinationPath "installer/payload"
+          Get-ChildItem -Recurse installer/payload | Select-Object -First 5 FullName
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Compile setup.exe
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DPlatform=${{ matrix.platform }} /DVersion=${{ steps.get_version.outputs.VERSION }} installer\pvd-setup.iss'
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-${{ matrix.platform }}
+          path: installer/out/*.exe
   
   release:
-    needs: build
+    needs: [build, installer]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     
@@ -208,6 +251,8 @@ jobs:
           VERSION="${{ steps.get_version.outputs.VERSION }}"
           cp downloaded-artifacts/build-artifacts-x64/VideoDownloader-${VERSION}-x64.zip release-artifacts/ || echo "Failed to copy x64 artifact"
           cp downloaded-artifacts/build-artifacts-arm64/VideoDownloader-${VERSION}-arm64.zip release-artifacts/VideoDownloader-${VERSION}-ARM64.zip || echo "Failed to copy ARM64 artifact"
+          cp downloaded-artifacts/installer-x64/VideoDownloader-Setup-${VERSION}-x64.exe release-artifacts/ || echo "Failed to copy x64 setup"
+          cp downloaded-artifacts/installer-arm64/VideoDownloader-Setup-${VERSION}-arm64.exe release-artifacts/ || echo "Failed to copy arm64 setup"
           echo "Listing release artifacts:"
           ls -la release-artifacts
       
@@ -280,6 +325,12 @@ jobs:
           echo "" >> checksums.txt
           cat VideoDownloader-${VERSION}-x64.zip.sha256 >> checksums.txt
           cat VideoDownloader-${VERSION}-ARM64.zip.sha256 >> checksums.txt
+          if [ -f VideoDownloader-Setup-${VERSION}-x64.exe ]; then
+            sha256sum VideoDownloader-Setup-${VERSION}-x64.exe | tr 'a-f' 'A-F' >> checksums.txt
+          fi
+          if [ -f VideoDownloader-Setup-${VERSION}-arm64.exe ]; then
+            sha256sum VideoDownloader-Setup-${VERSION}-arm64.exe | tr 'a-f' 'A-F' >> checksums.txt
+          fi
       
       - name: Create Release
         uses: softprops/action-gh-release@v3
@@ -293,6 +344,8 @@ jobs:
             release-artifacts/VideoDownloader-${{ steps.get_version.outputs.VERSION }}-ARM64.zip
             release-artifacts/VideoDownloader-${{ steps.get_version.outputs.VERSION }}-x64.zip.sha256
             release-artifacts/VideoDownloader-${{ steps.get_version.outputs.VERSION }}-ARM64.zip.sha256
+            release-artifacts/VideoDownloader-Setup-${{ steps.get_version.outputs.VERSION }}-x64.exe
+            release-artifacts/VideoDownloader-Setup-${{ steps.get_version.outputs.VERSION }}-arm64.exe
             release-artifacts/checksums.txt
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
