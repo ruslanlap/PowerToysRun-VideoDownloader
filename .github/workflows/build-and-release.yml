@@ -190,6 +190,7 @@ jobs:
 
       - name: Get version from tag
         id: get_version
+        shell: bash
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Download platform artifact
