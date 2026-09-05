@@ -23,14 +23,24 @@
 
 ### 📥 Download Latest Release
 
-<div align="center">
+**Latest Version: v1.2.3**
 
-[![Download for x64](https://img.shields.io/badge/Download-x64%20-50FA7B?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.12-x64.zip)
-[![Download for ARM64](https://img.shields.io/badge/Download-ARM64%20-50FA7B?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.12-ARM64.zip)
+#### winget (recommended)
+```powershell
+winget install ruslanlap.PowerToysRun-VideoDownloader
+```
 
-**Latest Version: v1.0.12** | [View All Releases](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases)
+#### Manual Download
 
-</div>
+[![Download for x64](https://img.shields.io/badge/Download-x64%20-50FA7B?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-Setup-1.2.3-x64.exe)
+[![Download for ARM64](https://img.shields.io/badge/Download-ARM64%20-50FA7B?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-Setup-1.2.3-arm64.exe)
+
+Or grab the ZIP archives:
+
+[![Download ZIP x64](https://img.shields.io/badge/ZIP-x64%20-6272A4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.2.3-x64.zip)
+[![Download ZIP ARM64](https://img.shields.io/badge/ZIP-ARM64%20-6272A4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.2.3-ARM64.zip)
+
+[View All Releases](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases)
 
 </div>
 
@@ -43,7 +53,7 @@
 - **Action Keyword:** `dl`
 - **Platforms:** YouTube, Vimeo, and [1000+ sites](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)
 - **Architectures:** x64 & ARM64
-- **Requirements:** Windows 10/11, PowerToys v0.75+
+- **Requirements:** Windows 10/11 (build 19041+), PowerToys v0.75+
 
 > ⚠️ **Educational purposes only.** Respect copyright laws and platform terms of service. This tool doesn't bypass DRM or paid content restrictions.
 
@@ -64,17 +74,25 @@
 
 ## 🚀 Installation
 
-### Quick Install
+### winget (recommended)
+
+```powershell
+winget install ruslanlap.PowerToysRun-VideoDownloader
+```
+
+That's it — winget handles everything automatically.
+
+### Manual Install (ZIP)
 
 1. **Download** the latest release:
-    - [x64 Release](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.12-x64.zip)
-    - [ARM64 Release](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.0.12-ARM64.zip)
+   - [x64 Release (ZIP)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.2.3-x64.zip)
+   - [ARM64 Release (ZIP)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.2.3-ARM64.zip)
 
 2. **Extract** to:
 
-    ```
-    %LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\
-    ```
+   ```
+   %LOCALAPPDATA%\Microsoft\PowerToys\PowerToys Run\Plugins\
+   ```
 
 3. **Restart** PowerToys (right-click tray icon → Exit, then relaunch)
 
@@ -253,7 +271,27 @@ Still stuck? [Open an issue](https://github.com/ruslanlap/PowerToysRun-VideoDown
 
 ## 📝 Changelog
 
-### v1.0.12 (Latest)
+### v1.2.3 (Latest)
+
+- ✨ **Inno Setup installer** — clean Windows install/uninstall experience
+- 📦 **winget-ready** — published to `microsoft/winget-pkgs`
+- 🐛 Fixed version extraction in CI (bash shell compatibility)
+- 🐛 Fixed Inno Setup payload and output paths
+
+### v1.2.2
+
+- 🐛 Fixed auto-merge wait loop in dependabot workflow
+
+### v1.2.1
+
+- 🐛 Fixed installer artifact naming (empty VERSION variable)
+
+### v1.2.0
+
+- 🐛 Snyk auth fix for Dependabot PRs
+- ✅ CI pipeline improvements
+
+### v1.0.12
 
 - 🐛 Fixed filename formatting - now preserves spaces instead of replacing with underscores
 - ✨ Filenames now match native yt-dlp behavior while remaining Windows-compatible
