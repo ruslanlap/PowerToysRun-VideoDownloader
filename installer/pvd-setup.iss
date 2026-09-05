@@ -38,4 +38,4 @@ ArchitecturesInstallIn64BitMode=x64compatible
 #endif
 
 [Files]
-Source: "installer\payload\VideoDownloader\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
+Source: "payload\VideoDownloader\*"; DestDir: "{app}"; Flags: recursesubdirs createallsubdirs
