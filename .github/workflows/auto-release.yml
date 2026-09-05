@@ -81,15 +81,19 @@ jobs:
           SUBJECTS="$(git log "$RANGE" --format=%s)"
           if grep -qiE "^(feat|feature)(\(|:)" <<< "$SUBJECTS"; then
             MINOR=$((MINOR+1)); PATCH=0
-          else
+          elif grep -qiE "^fix(\(|:)" <<< "$SUBJECTS"; then
             PATCH=$((PATCH+1))
+          else
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Only chore/docs/ci commits since ${LAST_TAG:-start} — no release"
+            exit 0
           fi
           NEW="$MAJOR.$MINOR.$PATCH"
           echo "version=$NEW" >> $GITHUB_OUTPUT
           echo "Next version: $NEW"
 
       - name: Skip if tag already exists
-        if: steps.gate.outputs.mode == 'new-work'
+        if: steps.gate.outputs.mode == 'new-work' && steps.next.outputs.skip != 'true'
         id: check
         run: |
           NEW="${{ steps.next.outputs.version }}"
@@ -101,7 +105,7 @@ jobs:
           fi
 
       - name: Bump plugin.json, commit, push master, tag
-        if: steps.gate.outputs.mode == 'new-work' && steps.check.outputs.exists == 'false'
+        if: steps.gate.outputs.mode == 'new-work' && steps.check.outputs.exists == 'false' && steps.next.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PAT }}
         run: |
