@@ -62,6 +62,10 @@ jobs:
       - name: Build
         run: dotnet build VideoDownloader/VideoDownloader.sln -c Release -p:Platform="${{ matrix.platform }}"
       
+      - name: Run unit tests
+        if: matrix.platform == 'x64'
+        run: dotnet test VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader.UnitTests/Community.PowerToys.Run.Plugin.VideoDownloader.UnitTests.csproj -c Release -p:Platform=x64 --no-build
+      
       - name: Create output directory
         run: mkdir -p artifacts
       

@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### ✨ New Features
+- **Premiere Pro compatibility (#57):** Downloads now prefer native H.264/AAC streams via yt-dlp format sorting (`-S vcodec:h264,res,acodec:m4a`); when only AV1/VP9 is available, the file is automatically re-encoded to H.264/AAC MP4 with ffmpeg after the download finishes
+- New setting "Transcode AV1/VP9 to H.264 (Premiere Pro)" (default on) controls the post-download re-encode
+
 ## [1.0.12] - 2025-01-21
 ### 🐛 Bug Fixes
 - **Filename Formatting:** Removed restrictive ASCII-only filename conversion - filenames now preserve spaces instead of replacing them with underscores
