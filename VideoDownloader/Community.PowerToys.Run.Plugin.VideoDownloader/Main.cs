@@ -1932,7 +1932,6 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                 Debug.WriteLine($"Stack trace: {e.StackTrace}");
             }
         }
-    }
 
     private void TryTranscodeToH264(DateTime startedAt)
     {
@@ -2006,6 +2005,8 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
         return null;
     }
+
+} // end class Main
 
     public class VideoDownloaderSettings
     {
