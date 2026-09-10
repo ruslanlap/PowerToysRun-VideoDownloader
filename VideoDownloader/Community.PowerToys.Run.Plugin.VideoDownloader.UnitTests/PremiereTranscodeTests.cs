@@ -120,12 +120,12 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader.UnitTests
             File.WriteAllText(preExisting, "old");
             File.SetLastWriteTimeUtc(preExisting, startedAt.AddMinutes(-10));
 
-            var leftoverTmp = Path.Combine(_tempDir, "leftover.tmp.mp4");
+            var leftoverTmp = Path.Combine(_tempDir, "leftover.transcoding.mp4");
             File.WriteAllText(leftoverTmp, "tmp");
             File.SetLastWriteTimeUtc(leftoverTmp, startedAt.AddSeconds(30));
 
             var found = CallFindRecentDownload(startedAt);
-            Assert.IsNull(found, "Old files and .tmp.mp4 leftovers must not be picked up");
+            Assert.IsNull(found, "Old files and .transcoding.mp4 leftovers must not be picked up");
         }
 
         [TestMethod]
