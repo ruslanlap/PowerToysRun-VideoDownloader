@@ -11,6 +11,7 @@ using System.Windows;
 using ManagedCommon;
 using Wox.Plugin;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.PowerToys.Settings.UI.Library;
 
 namespace Community.PowerToys.Run.Plugin.VideoDownloader
@@ -328,12 +329,16 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     var ffmpegPath = GetFfmpegExecutablePath();
                     var ffmpegDir = Path.GetDirectoryName(ffmpegPath);
                     var outputTemplate = GetSafeOutputTemplate(quality);
+                    var startedAt = DateTime.UtcNow; // #57: snapshot for post-download transcode file discovery
 
                     var commandParts = new List<string>
                     {
                         File.Exists(ffmpegPath) ? "--ffmpeg-location" : "",
                         File.Exists(ffmpegPath) ? $"\"{ffmpegDir}\"" : "",
                         "-f", $"\"{format}\"",
+                        // P2-c: -S sort only when TranscodeToPremiereSafe is enabled
+                        _settings.TranscodeToPremiereSafe ? "-S" : "",
+                        _settings.TranscodeToPremiereSafe ? "\"vcodec:h264,res,acodec:m4a\"" : "", // #57: prefer native H.264/AAC
                         "--merge-output-format", _settings.VideoFormat,
                         _settings.PreventFileOverwrites ? "--no-overwrites" : "",
                         "--windows-filenames", // Ensure Windows compatibility
@@ -360,6 +365,12 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     
                     Debug.WriteLine($"Video download - Success: {success}, AutoOpenFolder: {_settings.AutoOpenFolder}");
                     
+                    // #57: fallback transcode for Premiere-hostile codecs the sort could not avoid
+                    if (success)
+                    {
+                        TryTranscodeToH264(startedAt);
+                    }
+
                     if (success && _settings.AutoOpenFolder)
                     {
                         Debug.WriteLine("Auto-opening folder after successful video download");
@@ -372,6 +383,221 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     Debug.WriteLine($"Video download exception: {e}");
                 }
             });
+        }
+
+        /// <summary>
+        /// #57: After a successful download, re-encode Premiere-hostile codecs (av01/vp9/...)
+        /// to H.264/AAC MP4 when no native H.264 stream was available. Original file is only
+        /// replaced after a successful transcode; on any failure the download stays usable.
+        /// </summary>
+        private void TryTranscodeToH264(DateTime startedAt)
+        {
+            try
+            {
+                if (!_settings.TranscodeToPremiereSafe) return;
+                if (!IsFfmpegAvailable()) return;
+
+                var file = FindRecentDownload(startedAt);
+                if (file == null) return;
+
+                var codec = GetVideoCodec(file);
+                var audioCodec = GetAudioCodec(file);
+                // P2-b: transcode if video is not h264 OR audio is not AAC-family
+                var videoOk = codec != null && codec.Equals("h264", StringComparison.OrdinalIgnoreCase);
+                var audioOk = audioCodec != null && (
+                    audioCodec.StartsWith("aac", StringComparison.OrdinalIgnoreCase) ||
+                    audioCodec.StartsWith("mp4a", StringComparison.OrdinalIgnoreCase));
+                if (videoOk && audioOk)
+                {
+                    Debug.WriteLine($"Transcode skipped - video: {codec}, audio: {audioCodec} (both Premiere-compatible)");
+                    return;
+                }
+                Debug.WriteLine($"Transcode needed - video: {codec ?? "unknown"}, audio: {audioCodec ?? "unknown"}");
+                _context.API.ShowMsg("🔄 Transcoding to H.264", $"Adobe Premiere Pro compatibility ({codec} detected) - the original file is kept until this finishes", _iconPath);
+
+                // Always transcode to a unique temp sibling first, then atomically replace/move.
+                // Never delete the source before the transcode succeeds.
+                var tmp = file + ".transcoding.mp4";
+                var exitCode = RunFfmpegTranscode(file, tmp);
+
+                if (exitCode != 0 || !File.Exists(tmp) || new FileInfo(tmp).Length == 0)
+                {
+                    Debug.WriteLine($"Transcode failed with exit code {exitCode} - keeping original file");
+                    TryDeleteFile(tmp);
+                    _context.API.ShowMsg("⚠️ Transcode Failed", "The download is still usable, but it was not converted to H.264.", _iconPath);
+                    return;
+                }
+
+                // Determine final target path (respecting PreventFileOverwrites for MKV->MP4 rename)
+                var isMp4 = file.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase);
+                string target;
+                if (isMp4)
+                {
+                    target = file; // replace in place via overwrite
+                }
+                else
+                {
+                    // MKV → resolve collision-aware .mp4 path
+                    target = Path.ChangeExtension(file, ".mp4");
+                    if (_settings.PreventFileOverwrites && File.Exists(target))
+                    {
+                        var dir = Path.GetDirectoryName(target)!;
+                        var stem = Path.GetFileNameWithoutExtension(target);
+                        int n = 1;
+                        while (File.Exists(Path.Combine(dir, $"{stem} ({n}).mp4"))) n++;
+                        target = Path.Combine(dir, $"{stem} ({n}).mp4");
+                    }
+                }
+                // Atomic: single File.Move with overwrite — no delete-first data-loss risk (P1-A)
+                File.Move(tmp, target, overwrite: true);
+                if (!isMp4) TryDeleteFile(file); // remove original MKV only after successful move
+
+                Debug.WriteLine($"Transcode complete: {file}");
+                _context.API.ShowMsg("✅ Transcode Complete", $"{codec} → H.264 (Adobe Premiere Pro compatible)", _iconPath);
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"Transcode exception: {e}");
+                _context.API.ShowMsg("⚠️ Transcode Failed", $"The download is still usable. Error: {e.Message}", _iconPath);
+            }
+        }
+
+        /// <summary>
+        /// Finds the most recently written mp4/mkv file in the download folder.
+        /// The C# side never learns yt-dlp's rendered filename, so write-time
+        /// snapshotting is the only mode-independent discovery mechanism.
+        /// </summary>
+        private string FindRecentDownload(DateTime startedAt)
+        {
+            var searchRoot = _settings.DownloadPath;
+            if (string.IsNullOrWhiteSpace(searchRoot) || !Directory.Exists(searchRoot)) return null;
+
+            return new[] { "*.mp4", "*.mkv", "*.webm" }
+                .SelectMany(pattern => Directory.EnumerateFiles(searchRoot, pattern))
+                .Where(f => !f.EndsWith(".transcoding.mp4", StringComparison.OrdinalIgnoreCase))
+                .Where(f => File.GetLastWriteTimeUtc(f) >= startedAt.AddSeconds(-5))
+                .OrderByDescending(File.GetLastWriteTimeUtc)
+                .FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Detects the video codec via ffmpeg's own stream dump. ffprobe.exe is not
+        /// shipped with the plugin, so parse "Stream #0:… Video: <codec>" from stderr.
+        /// Returns null when detection fails (transcode is then skipped safely).
+        /// </summary>
+        private string GetVideoCodec(string file)
+        {
+            try
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = GetFfmpegExecutablePath(),
+                    Arguments = $"-hide_banner -i \"{file}\"",
+                    UseShellExecute = false,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+
+                using var process = Process.Start(startInfo);
+                if (process == null) return null;
+
+                // ffmpeg exits (non-zero) right after printing the stream dump
+                var stderr = process.StandardError.ReadToEnd();
+                process.WaitForExit(10000);
+
+                var match = Regex.Match(stderr, @"Stream #\d+:\d+.*?: Video: (\w+)");
+                return match.Success ? match.Groups[1].Value : null;
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"Codec detection failed: {e.Message}");
+                return null;
+            }
+        }
+
+        private string GetAudioCodec(string file)
+        {
+            try
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = GetFfmpegExecutablePath(),
+                    Arguments = $"-hide_banner -i \"{file}\"",
+                    UseShellExecute = false,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+
+                using var process = Process.Start(startInfo);
+                if (process == null) return null;
+
+                var stderr = process.StandardError.ReadToEnd();
+                process.WaitForExit(10000);
+
+                var match = Regex.Match(stderr, @"Stream #\d+:\d+.*?: Audio: (\w+)");
+                return match.Success ? match.Groups[1].Value : null;
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"Audio codec detection failed: {e.Message}");
+                return null;
+            }
+        }
+
+        private int RunFfmpegTranscode(string source, string target)
+        {
+            var arguments =
+                $"-y -hide_banner -nostdin -i \"{source}\" " +
+                "-map 0:v:0 -map 0:a:0? " +
+                "-c:v libx264 -preset fast -crf 18 -pix_fmt yuv420p " +
+                "-c:a aac -b:a 192k -movflags +faststart " +
+                $"\"{target}\"";
+
+            Debug.WriteLine($"ffmpeg transcode: {arguments}");
+
+            try
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = GetFfmpegExecutablePath(),
+                    Arguments = arguments,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden
+                };
+
+                using var process = Process.Start(startInfo);
+                if (process == null) return -1;
+
+                // Long videos take roughly playback time to transcode - allow an hour
+                if (!process.WaitForExit((int)TimeSpan.FromMinutes(60).TotalMilliseconds))
+                {
+                    process.Kill();
+                    Debug.WriteLine("Transcode timed out after 60 minutes");
+                    return -1;
+                }
+
+                return process.ExitCode;
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"ffmpeg transcode exception: {e.Message}");
+                return -1;
+            }
+        }
+
+        private static void TryDeleteFile(string path)
+        {
+            try
+            {
+                if (File.Exists(path)) File.Delete(path);
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"Could not delete {path}: {e.Message}");
+            }
         }
 
         private void ShowAvailableSubtitles(string url)
@@ -794,8 +1020,9 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                 var process = Process.Start(startInfo);
                 if (process != null)
                 {
-                    Debug.WriteLine("Successfully started yt-dlp process with visible window");
-                    return true;
+                    process.WaitForExit(); // P1-C: wait for yt-dlp to finish, not just cmd.exe launch
+                    Debug.WriteLine($"yt-dlp terminal process exited with code {process.ExitCode}");
+                    return process.ExitCode == 0;
                 }
                 else
                 {
@@ -1433,6 +1660,14 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                         DisplayDescription = "Embed subtitle tracks directly in the video file (for supported formats like MKV)",
                         PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
                         Value = _settings.EmbedSubtitles
+                    },
+                    new()
+                    {
+                        Key = "TranscodeToPremiereSafe",
+                        DisplayLabel = "Transcode AV1/VP9 to H.264 (Premiere Pro)",
+                        DisplayDescription = "Prefer H.264 sort order AND re-encode AV1/VP9 files to H.264/AAC MP4 for Adobe Premiere Pro compatibility",
+                        PluginOptionType = PluginAdditionalOption.AdditionalOptionType.Checkbox,
+                        Value = _settings.TranscodeToPremiereSafe
                     }
                 };
             }
@@ -1653,6 +1888,13 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                     Debug.WriteLine($"Embed subtitles updated to: {_settings.EmbedSubtitles}");
                 }
 
+                var transcodeToPremiereSafeOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "TranscodeToPremiereSafe");
+                if (transcodeToPremiereSafeOption != null && transcodeToPremiereSafeOption.Value != _settings.TranscodeToPremiereSafe)
+                {
+                    _settings.TranscodeToPremiereSafe = transcodeToPremiereSafeOption.Value;
+                    Debug.WriteLine($"Transcode to Premiere safe updated to: {_settings.TranscodeToPremiereSafe}");
+                }
+
                 var subtitleLanguagesOption = settings.AdditionalOptions.FirstOrDefault(x => x.Key == "SubtitleLanguages");
                 if (subtitleLanguagesOption != null && subtitleLanguagesOption.TextValue != _settings.SubtitleLanguages)
                 {
@@ -1690,7 +1932,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
                 Debug.WriteLine($"Stack trace: {e.StackTrace}");
             }
         }
-    }
+} // Main
 
     public class VideoDownloaderSettings
     {
@@ -1708,6 +1950,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         public bool UseVideoIdInFilename { get; set; } = true; // Use video ID for unique filenames
         public bool ShowCommandWindow { get; set; } = false; // Show command window during downloads
         public bool AutoOpenFolder { get; set; } = true; // Automatically open download folder after successful download
+        public bool TranscodeToPremiereSafe { get; set; } = true; // #57: re-encode av01/vp9 downloads to H.264/AAC for Adobe Premiere Pro
         
         // Enhanced subtitle settings
         public bool AlwaysDownloadSubtitles { get; set; } = false; // Always download subtitles with videos
