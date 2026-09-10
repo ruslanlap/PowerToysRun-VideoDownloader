@@ -23,7 +23,7 @@
 
 ### 📥 Download Latest Release
 
-**Latest Version: v1.2.3**
+**Latest Version: v1.3.0**
 
 #### winget (recommended)
 ```powershell
@@ -32,13 +32,13 @@ winget install ruslanlap.PowerToysRun-VideoDownloader
 
 #### Manual Download
 
-[![Download for x64](https://img.shields.io/badge/Download-x64%20-50FA7B?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-Setup-1.2.3-x64.exe)
-[![Download for ARM64](https://img.shields.io/badge/Download-ARM64%20-50FA7B?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-Setup-1.2.3-arm64.exe)
+[![Download for x64](https://img.shields.io/badge/Download-x64%20-50FA7B?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-Setup-1.3.0-x64.exe)
+[![Download for ARM64](https://img.shields.io/badge/Download-ARM64%20-50FA7B?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-Setup-1.3.0-arm64.exe)
 
 Or grab the ZIP archives:
 
-[![Download ZIP x64](https://img.shields.io/badge/ZIP-x64%20-6272A4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.2.3-x64.zip)
-[![Download ZIP ARM64](https://img.shields.io/badge/ZIP-ARM64%20-6272A4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.2.3-ARM64.zip)
+[![Download ZIP x64](https://img.shields.io/badge/ZIP-x64%20-6272A4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.3.0-x64.zip)
+[![Download ZIP ARM64](https://img.shields.io/badge/ZIP-ARM64%20-6272A4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.3.0-ARM64.zip)
 
 [View All Releases](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases)
 
@@ -67,6 +67,7 @@ Or grab the ZIP archives:
 - 🎨 **Theme-Aware** – Auto-adapts to dark/light system theme
 - 📂 **Custom Locations** – Save to any folder you choose
 - 🔄 **Auto-Updates** – yt-dlp auto-downloaded and managed
+- 🎬 **Premiere Pro Compatible** – Auto-transcodes AV1/VP9 to H.264/AAC for direct import
 - 📝 **Subtitle Support** – Download with captions when needed
 - 🚀 **No Dependencies** – Everything bundled, zero config
 
@@ -85,8 +86,8 @@ That's it — winget handles everything automatically.
 ### Manual Install (ZIP)
 
 1. **Download** the latest release:
-   - [x64 Release (ZIP)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.2.3-x64.zip)
-   - [ARM64 Release (ZIP)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.2.3-ARM64.zip)
+   - [x64 Release (ZIP)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.3.0-x64.zip)
+   - [ARM64 Release (ZIP)](https://github.com/ruslanlap/PowerToysRun-VideoDownloader/releases/latest/download/VideoDownloader-1.3.0-ARM64.zip)
 
 2. **Extract** to:
 
@@ -151,6 +152,7 @@ Access via: **PowerToys Settings → Run → Plugins → Video Downloader**
 - **Default Format** – Video (MP4) or Audio (MP3)
 - **Quality Preference** – Best, 1080p, 720p, etc.
 - **Auto-Open Folder** – Open location after download
+- **Transcode to H.264** – Re-encode AV1/VP9 downloads for Premiere Pro (default: on)
 
 ---
 
@@ -271,7 +273,7 @@ Still stuck? [Open an issue](https://github.com/ruslanlap/PowerToysRun-VideoDown
 
 ## 📝 Changelog
 
-### v1.2.3 (Latest)
+### v1.3.0 (Latest)
 
 - ✨ **Inno Setup installer** — clean Windows install/uninstall experience
 - 📦 **winget-ready** — published to `microsoft/winget-pkgs`
@@ -308,7 +310,7 @@ Still stuck? [Open an issue](https://github.com/ruslanlap/PowerToysRun-VideoDown
 - 📦 SHA256 checksums for releases
 - 🔧 ARM64 build fixes
 
-[Full changelog](VideoDownloader/Community.PowerToys.Run.Plugin.VideoDownloader/CHANGELOG.md)
+[Full changelog](CHANGELOG.md)
 
 ---
 
