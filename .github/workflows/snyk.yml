@@ -40,4 +40,5 @@ jobs:
       - name: Monitor
         # Push results to the Snyk platform — only for the master snapshot.
         if: github.ref == 'refs/heads/master' && env.SNYK_TOKEN != ''
+        continue-on-error: true  # PackageOverrides.txt bug on windows-latest/.NET 10 runners
         run: snyk monitor --all-projects --org=$SNYK_ORG
