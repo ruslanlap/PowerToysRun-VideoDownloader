@@ -2006,7 +2006,7 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
         return null;
     }
 
-} // end class Main
+} // Main
 
     public class VideoDownloaderSettings
     {
