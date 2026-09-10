@@ -19,11 +19,12 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader.UnitTests
         [TestMethod]
         public void Query_should_return_results()
         {
+            // Plugin is not fully initialized (no PluginInitContext), so Query returns setup/error results.
+            // That is valid — any non-null list with at least one result passes.
             var results = main.Query(new Query("search", "search"));
 
-            Assert.IsNotNull(results.First());
+            Assert.IsNotNull(results, "Query should return a non-null list");
+            Assert.IsTrue(results.Count > 0, "Query should return at least one result (setup prompt or actual results)");
         }
-
-        // Additional test methods can be added here as needed
     }
 }

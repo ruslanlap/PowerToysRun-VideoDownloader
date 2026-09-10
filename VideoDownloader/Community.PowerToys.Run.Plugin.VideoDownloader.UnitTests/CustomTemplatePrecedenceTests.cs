@@ -105,11 +105,11 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader.UnitTests
             // Act: Generate template for audio
             var template = CallGetSafeOutputTemplate("audio");
 
-            // Assert: Should generate template with audio quality and timestamp
+            // Assert: Should generate template with audio quality (timestamp removed in 1.2.x — PreventFileOverwrites uses --no-overwrites flag, not filename timestamp)
             Assert.IsTrue(template.Contains("%(title)"), "Should include title from generated template");
             Assert.IsTrue(template.Contains("[Audio]"), "Should include audio quality marker");
             Assert.IsFalse(template.Contains("%(id)s"), "Should not include video ID when setting is false");
-            Assert.IsTrue(template.Contains("_20"), "Should include timestamp for uniqueness when video ID disabled");
+            Assert.IsFalse(template.Contains("_20"), "Should NOT include timestamp — yt-dlp --no-overwrites handles collision when video ID is disabled");
         }
 
         [TestMethod]
