@@ -125,9 +125,25 @@ dl https://www.youtube.com/watch?v=dQw4w9WgXcQ
 | Command                       | Description                 |
 | ----------------------------- | --------------------------- |
 | `dl [URL]`                    | Download best quality video |
+| `dl update`                   | Update yt-dlp to the latest release |
 | Select "Audio Only (MP3)"     | Extract audio as MP3        |
 | Select "Video Information"    | Preview available formats   |
 | Select "Open Download Folder" | Open downloads location     |
+
+### Keeping yt-dlp up to date
+
+Video sites break yt-dlp extractors constantly; yt-dlp ships fixes weekly. Instead of
+waiting for the next plugin release, run:
+
+```
+dl update
+```
+
+This downloads the latest yt-dlp release for your architecture (x86/x64), verifies it
+against the **SHA-256 digest published in the release metadata**, tests that the binary
+runs, and only then atomically replaces the bundled `yt-dlp.exe`. If the download is
+corrupted, the hash doesn't match, or the new binary fails to start, the previous
+working version is kept automatically — the plugin is never left broken.
 
 ### Examples
 

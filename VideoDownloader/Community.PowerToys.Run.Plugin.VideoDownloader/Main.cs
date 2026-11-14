@@ -12,6 +12,7 @@ using ManagedCommon;
 using Wox.Plugin;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Runtime.InteropServices;
 using Microsoft.PowerToys.Settings.UI.Library;
 
 namespace Community.PowerToys.Run.Plugin.VideoDownloader
@@ -71,11 +72,28 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             {
                 results.Add(new Result { Title = "Video Downloader", SubTitle = "Enter a video URL to download", IcoPath = _iconPath });
                 results.Add(new Result { Title = "📂 Open Download Folder", SubTitle = $"Current path: {_settings.DownloadPath}", IcoPath = _iconPath, Action = _ => { OpenDownloadFolder(); return true; } });
-                results.Add(new Result { Title = "🔄 Update yt-dlp", SubTitle = "Force update yt-dlp to latest version", IcoPath = _iconPath, Action = _ => { Task.Run(() => UpdateYtDlp()); return true; } });
+                results.Add(new Result { Title = "🔄 Update yt-dlp", SubTitle = "Update to the latest yt-dlp (SHA-256 verified, automatic rollback) — or type 'dl update'", IcoPath = _iconPath, Action = _ => { Task.Run(() => UpdateYtDlp()); return true; } });
                 return results;
             }
 
             var search = query.Search.Trim();
+
+            if (search.Equals("update", StringComparison.OrdinalIgnoreCase))
+            {
+                results.Add(new Result
+                {
+                    Title = "🔄 Update yt-dlp",
+                    SubTitle = "Download the latest yt-dlp release (SHA-256 verified, automatic rollback on failure)",
+                    IcoPath = _iconPath,
+                    Action = _ =>
+                    {
+                        Task.Run(UpdateYtDlp);
+                        return true;
+                    }
+                });
+                return results;
+            }
+
             if (IsValidUrl(search))
             {
                 var domain = GetDomainFromUrl(search);
@@ -200,41 +218,24 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
 
             try
             {
-                _context.API.ShowMsg("🔄 Updating yt-dlp", "Downloading latest version...", _iconPath);
-                
-                // Backup existing version
-                var backupPath = ytDlpPath + ".backup";
-                if (File.Exists(ytDlpPath))
-                {
-                    File.Copy(ytDlpPath, backupPath, true);
-                }
+                var oldVersion = GetYtDlpVersionFrom(ytDlpPath);
 
-                var ytDlpUrl = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe";
-                var ytDlpBytes = await _httpClient.GetByteArrayAsync(ytDlpUrl);
-                await File.WriteAllBytesAsync(ytDlpPath, ytDlpBytes);
+                using var client = new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("PowerToysRun-VideoDownloader");
 
-                // Test the new version
-                var testCommand = "--version";
-                var versionOutput = RunYtDlpCommandWithOutput(testCommand);
-                
-                if (!string.IsNullOrEmpty(versionOutput))
-                {
-                    _context.API.ShowMsg("✅ yt-dlp Updated!", $"Version: {versionOutput.Trim()}", _iconPath);
-                    if (File.Exists(backupPath))
-                    {
-                        File.Delete(backupPath);
-                    }
-                }
-                else
-                {
-                    // Restore backup if update failed
-                    if (File.Exists(backupPath))
-                    {
-                        File.Copy(backupPath, ytDlpPath, true);
-                        File.Delete(backupPath);
-                    }
-                    throw new Exception("Updated yt-dlp version failed to run");
-                }
+                _context.API.ShowMsg("🔄 Updating yt-dlp", "Fetching latest release info…", _iconPath);
+                var releaseJson = await client.GetStringAsync(YtDlpUpdater.LatestReleaseApiUrl);
+                var release = YtDlpUpdater.ParseRelease(releaseJson);
+                var asset = YtDlpUpdater.SelectAsset(release, RuntimeInformation.ProcessArchitecture);
+
+                var status = new Progress<string>(message => _context.API.ShowMsg("🔄 Updating yt-dlp", message, _iconPath));
+                var newVersion = await YtDlpUpdater.InstallAsync(
+                    client, asset, ytDlpPath, path => GetYtDlpVersionFrom(path), status);
+
+                _context.API.ShowMsg(
+                    "✅ yt-dlp Updated!",
+                    string.IsNullOrEmpty(oldVersion) ? $"Version: {newVersion}" : $"{oldVersion} → {newVersion}",
+                    _iconPath);
             }
             catch (Exception e)
             {
@@ -244,6 +245,50 @@ namespace Community.PowerToys.Run.Plugin.VideoDownloader
             finally
             {
                 _isSetupRunning = false;
+            }
+        }
+
+        /// <summary>Runs "<paramref name="path"/>" --version with a timeout; returns null when the binary is broken or missing.</summary>
+        private string GetYtDlpVersionFrom(string path, int timeoutMilliseconds = 15000)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            {
+                return null;
+            }
+
+            try
+            {
+                var startInfo = new ProcessStartInfo
+                {
+                    FileName = path,
+                    Arguments = "--version",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                };
+
+                using var process = Process.Start(startInfo);
+                if (process == null)
+                {
+                    return null;
+                }
+
+                var output = process.StandardOutput.ReadToEnd();
+                if (!process.WaitForExit(timeoutMilliseconds))
+                {
+                    try { process.Kill(); }
+                    catch { /* already exited */ }
+                    return null;
+                }
+
+                return process.ExitCode == 0 ? output.Trim() : null;
+            }
+            catch (Exception e)
+            {
+                Debug.WriteLine($"yt-dlp version check failed: {e.Message}");
+                return null;
             }
         }
 
