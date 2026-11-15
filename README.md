@@ -66,7 +66,7 @@ Or grab the ZIP archives:
 - 📊 **Format Preview** – View all available qualities before downloading
 - 🎨 **Theme-Aware** – Auto-adapts to dark/light system theme
 - 📂 **Custom Locations** – Save to any folder you choose
-- 🔄 **Auto-Updates** – yt-dlp auto-downloaded and managed
+- 🔄 **Manual yt-dlp Updates** – Update to the latest release from PowerToys Run
 - 🎬 **Premiere Pro Compatible** – Auto-transcodes AV1/VP9 to H.264/AAC for direct import
 - 📝 **Subtitle Support** – Download with captions when needed
 - 🚀 **No Dependencies** – Everything bundled, zero config
@@ -263,7 +263,7 @@ The plugin auto-downloads yt-dlp on first use. Ensure internet connectivity and 
 <details>
 <summary><b>How do I update yt-dlp?</b></summary>
 
-The plugin checks for yt-dlp updates automatically. You can manually update by deleting the yt-dlp binary from the plugin folder—it'll re-download latest on next use.
+The plugin does not check for yt-dlp updates automatically. In PowerToys Run, type `dl` and select **Update yt-dlp**, or type `dl update` and select the result. Setup downloads yt-dlp only when it is missing.
 
 </details>
 
